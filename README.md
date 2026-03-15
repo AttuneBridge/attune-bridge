@@ -86,3 +86,33 @@ Validation is successful if early users consistently show:
 Secondary success signal:
 
 - The product remains easy to explain, easy to demo, and easy to iterate without added complexity
+
+## Local Development
+
+### Prerequisites
+
+- Node.js 20+
+- A Postgres connection string (Supabase Postgres)
+
+### Environment
+
+Copy `.env.example` to `.env` and set:
+
+- `DATABASE_URL`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- Optional: `NEXT_PUBLIC_APP_URL`
+
+### Setup
+
+```bash
+npm install
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+npm run dev
+```
+
+Demo route after seeding:
+
+- `/feedback/demo-coffee-downtown`

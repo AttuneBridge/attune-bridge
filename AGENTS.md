@@ -55,7 +55,162 @@ Anything beyond this scope requires explicit instruction.
 
 Choose boring, predictable solutions first.
 
-## 6) UX Guidance
+## 6) Technology Stack (Prototype)
+
+### Frontend / Backend
+
+Next.js (App Router)
+
+Use:
+
+- TypeScript
+- Server Actions when possible
+- Route Handlers for APIs when necessary
+
+Next.js serves both frontend pages and backend endpoints.
+
+### Database
+
+Supabase Postgres
+
+Supabase provides the hosted Postgres database used by the application.
+
+The following should not be used during the prototype stage:
+
+- Supabase client SDK
+- Supabase Auth
+- Supabase Edge Functions
+
+Supabase is used strictly as the database host.
+
+### ORM
+
+Prisma
+
+Prisma is the data access layer for the application.
+
+All database reads and writes must go through Prisma.
+
+Reasons:
+
+- Strong TypeScript type safety
+- Easier schema iteration
+- Reliable migrations
+- Better behavior from AI coding agents
+- Cleaner developer experience for a multi-developer project
+
+Use Prisma for:
+
+- Schema definition
+- Migrations
+- Queries
+
+Agents should maintain a `prisma/schema.prisma` file.
+
+### Authentication
+
+Authentication is not required for the earliest prototype.
+
+Phase 1:
+
+- No auth
+- Demo businesses seeded in database
+
+Phase 2:
+
+- Optional Supabase Auth or Clerk if the product shows traction
+
+Avoid introducing complex authentication systems early.
+
+### Email Notifications
+
+Resend
+
+Purpose: send notification emails to business owners when private feedback is submitted.
+
+This is a key validation feature.
+
+### UI Framework
+
+TailwindCSS
+
+Optional:
+
+- shadcn/ui may be used for quickly building UI components
+
+Avoid creating a custom design system during the prototype phase.
+
+### Hosting
+
+Vercel
+
+The application should deploy via Vercel for fast iteration and preview environments.
+
+## 7) Architecture Diagram
+
+Application Layer
+
+- Next.js (App Router)
+
+Data Access Layer
+
+- Prisma ORM
+
+Database
+
+- Supabase Postgres
+
+External Services
+
+- Resend (email notifications)
+
+Hosting
+
+- Vercel
+
+Canonical flow:
+
+- Next.js
+- Prisma
+- Supabase Postgres
+
+Do not introduce direct Supabase client queries in app code. Route all data access through Prisma.
+
+## 8) Agent Development Rules
+
+- Prefer simple architecture
+- Avoid unnecessary dependencies
+- Avoid adding infrastructure before validation
+- Prioritize speed of iteration
+- Keep the prototype understandable and lightweight
+
+## 9) Final Stack Summary
+
+Frontend / Backend
+
+- Next.js + TypeScript
+
+ORM
+
+- Prisma
+
+Database
+
+- Supabase Postgres
+
+UI
+
+- TailwindCSS (+ optional shadcn/ui)
+
+Email
+
+- Resend
+
+Hosting
+
+- Vercel
+
+## 10) UX Guidance
 
 The interface should feel:
 
@@ -74,7 +229,7 @@ The product should communicate:
 
 Favor clear language and low cognitive load over visual complexity.
 
-## 7) Coding Guardrails
+## 11) Coding Guardrails
 
 - Do not add features that were not requested
 - Do not rename major product concepts without strong reason
@@ -85,7 +240,7 @@ Favor clear language and low cognitive load over visual complexity.
 
 When uncertain, choose the option that keeps the prototype easier to demo and modify.
 
-## 8) Git Identity
+## 12) Git Identity
 
 This repository uses Jacob Langley's personal GitHub identity at the repo level.
 
@@ -96,7 +251,7 @@ This repository uses Jacob Langley's personal GitHub identity at the repo level.
 
 Do not use `fullh3art` credentials in this repository.
 
-## 9) Definition of Done
+## 13) Definition of Done
 
 For early iterations, work is done when:
 
