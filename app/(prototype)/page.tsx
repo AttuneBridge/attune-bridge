@@ -65,7 +65,7 @@ export default function HomePage() {
       </section>
 
       <footer className="mt-24 text-center text-sm text-slate-500">
-        <Link href="/about" className="hover:underline">
+        <Link href="/about" target="_blank" rel="noopener noreferrer" className="hover:underline">
           About the Builder
         </Link>
       </footer>
