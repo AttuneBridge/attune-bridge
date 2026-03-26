@@ -13,7 +13,7 @@ function getSecret() {
   }
 
   if (process.env.NODE_ENV !== "production") {
-    return "reviewbridge-dev-manage-token-secret";
+    return "attunebridge-dev-manage-token-secret";
   }
 
   return null;

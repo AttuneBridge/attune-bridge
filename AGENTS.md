@@ -2,7 +2,7 @@
 
 ## 1) Mission
 
-ReviewBridge is a lean validation prototype for small service businesses. The goal is to help businesses capture private customer feedback before negative public reviews occur.
+AttuneBridge is a lean validation prototype for small service businesses. The goal is to help businesses capture private customer feedback before negative public reviews occur.
 
 This repository exists to test problem-solution fit and willingness to pay, not to build a full reputation-management platform.
 
@@ -247,7 +247,7 @@ This repository uses Jacob Langley's personal GitHub identity at the repo level.
 - GitHub account: `jacobnlangley`
 - Git user.name: `jacobnlangley`
 - Git user.email: `jacob.n.langley@gmail.com`
-- Expected remote owner: `jacobnlangley` (for example, `https://github.com/jacobnlangley/ReviewBridge`)
+- Expected remote owner: `jacobnlangley` (for example, `https://github.com/jacobnlangley/attune-bridge`)
 
 Do not use `fullh3art` credentials in this repository.
 

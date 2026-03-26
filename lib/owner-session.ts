@@ -20,7 +20,7 @@ function getSecret() {
   }
 
   if (process.env.NODE_ENV !== "production") {
-    return "reviewbridge-dev-owner-session-secret";
+    return "attunebridge-dev-owner-session-secret";
   }
 
   return null;
