@@ -28,6 +28,13 @@ model Business {
   featureRequests      OwnerFeatureRequest[]
   validationEvents     ValidationEvent[]
   moduleSubscriptions  BusinessModuleSubscription[]
+  schedulerContacts    SchedulerContact[]
+  schedulerOffers      SchedulerOffer[]
+  loyaltyPlaybooks     LoyaltyPlaybook[]
+  loyaltyOffers        LoyaltyOffer[]
+  loyaltyTemplates     LoyaltyTemplate[]
+  loyaltyMessages      LoyaltyMessage[]
+  loyaltyConversions   LoyaltyConversion[]
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
 
@@ -75,6 +82,8 @@ model Location {
   yelpReviewLink   String?
   business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   feedback         Feedback[]
+  schedulerOffers  SchedulerOffer[]
+  loyaltyMessages  LoyaltyMessage[]
   validationEvents ValidationEvent[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -114,6 +123,7 @@ model Feedback {
   internalNotes      String?
   location           Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
   notificationEvents NotificationEvent[]
+  loyaltyMessages    LoyaltyMessage[]
   createdAt          DateTime            @default(now())
 
   @@index([locationId])
@@ -135,6 +145,182 @@ model NotificationEvent {
 
   @@index([feedbackId, createdAt])
   @@index([businessId, createdAt])
+}
+
+model SchedulerContact {
+  id              String                   @id @default(cuid())
+  businessId      String
+  name            String
+  phone           String
+  isActive        Boolean                  @default(true)
+  notes           String?
+  optedInAt       DateTime?
+  optedOutAt      DateTime?
+  optedOutReason  String?
+  lastMessagedAt  DateTime?
+  business        Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  offerRecipients SchedulerOfferRecipient[]
+  claimedOffers   SchedulerOffer[]         @relation("SchedulerOfferClaimedBy")
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@unique([businessId, phone])
+  @@index([businessId, isActive])
+}
+
+model SchedulerOffer {
+  id                String                   @id @default(cuid())
+  businessId        String
+  locationId        String?
+  serviceLabel      String
+  discountText      String
+  startsAt          DateTime
+  expiresAt         DateTime?
+  status            SchedulerOfferStatus     @default(DRAFT)
+  sentAt            DateTime?
+  claimedAt         DateTime?
+  claimedByContactId String?
+  closedAt          DateTime?
+  business          Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location          Location?                @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  claimedByContact  SchedulerContact?        @relation("SchedulerOfferClaimedBy", fields: [claimedByContactId], references: [id], onDelete: SetNull)
+  recipients        SchedulerOfferRecipient[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([businessId, status, createdAt])
+  @@index([locationId, createdAt])
+}
+
+model SchedulerOfferRecipient {
+  id                String                    @id @default(cuid())
+  offerId           String
+  contactId         String
+  claimToken        String                    @unique
+  smsStatus         SchedulerRecipientSmsStatus @default(PENDING)
+  providerMessageId String?
+  smsErrorMessage   String?
+  sentAt            DateTime?
+  claimedAt         DateTime?
+  offer             SchedulerOffer            @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  contact           SchedulerContact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                  @default(now())
+
+  @@unique([offerId, contactId])
+  @@index([offerId, smsStatus])
+  @@index([contactId, createdAt])
+}
+
+model LoyaltyPlaybook {
+  id               String                @id @default(cuid())
+  businessId       String
+  name             String
+  type             LoyaltyPlaybookType
+  status           LoyaltyPlaybookStatus @default(ACTIVE)
+  audience         LoyaltyAudience
+  trigger          LoyaltyTrigger
+  delayHours       Int                   @default(48)
+  suppressIfBooked Boolean               @default(true)
+  offerId          String?
+  templateId       String?
+  startedAt        DateTime?
+  endedAt          DateTime?
+  business         Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  offer            LoyaltyOffer?         @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  template         LoyaltyTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  messages         LoyaltyMessage[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([businessId, status])
+  @@index([businessId, trigger, status])
+  @@index([businessId, audience, status])
+}
+
+model LoyaltyOffer {
+  id             String            @id @default(cuid())
+  businessId     String
+  name           String
+  kind           LoyaltyOfferKind
+  valueText      String
+  validDays      Int               @default(14)
+  code           String?
+  maxRedemptions Int?
+  isActive       Boolean           @default(true)
+  business       Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  playbooks      LoyaltyPlaybook[]
+  messages       LoyaltyMessage[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([businessId, isActive, createdAt])
+}
+
+model LoyaltyTemplate {
+  id          String                  @id @default(cuid())
+  businessId  String
+  name        String
+  category    LoyaltyTemplateCategory
+  subject     String
+  previewText String?
+  body        String
+  ctaLabel    String
+  isDefault   Boolean                 @default(false)
+  business    Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  playbooks   LoyaltyPlaybook[]
+  messages    LoyaltyMessage[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([businessId, category, isDefault])
+}
+
+model LoyaltyMessage {
+  id                String               @id @default(cuid())
+  businessId        String
+  locationId        String?
+  playbookId        String?
+  templateId        String?
+  offerId           String?
+  feedbackId        String?
+  customerName      String?
+  customerEmail     String?
+  trackingToken     String               @unique @default(cuid())
+  channel           LoyaltyChannel       @default(EMAIL)
+  status            LoyaltyMessageStatus @default(PENDING)
+  sendAfter         DateTime
+  sentAt            DateTime?
+  providerMessageId String?
+  errorMessage      String?
+  skipReason        String?
+  business          Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location          Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  playbook          LoyaltyPlaybook?     @relation(fields: [playbookId], references: [id], onDelete: SetNull)
+  template          LoyaltyTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  offer             LoyaltyOffer?        @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  feedback          Feedback?            @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+  conversions       LoyaltyConversion[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([businessId, status, sendAfter])
+  @@index([businessId, createdAt])
+  @@index([feedbackId, createdAt])
+  @@index([customerEmail, createdAt])
+}
+
+model LoyaltyConversion {
+  id          String               @id @default(cuid())
+  businessId  String
+  messageId   String
+  type        LoyaltyConversionType
+  metadata    Json?
+  convertedAt DateTime             @default(now())
+  business    Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  message     LoyaltyMessage       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, type])
+  @@index([businessId, type, convertedAt])
 }
 
 enum Sentiment {
@@ -179,9 +365,83 @@ enum ModuleSubscriptionStatus {
   INACTIVE
 }
 
+enum SchedulerOfferStatus {
+  DRAFT
+  SENT
+  CLAIMED
+  CLOSED
+  EXPIRED
+}
+
+enum SchedulerRecipientSmsStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 enum SubscriptionStatus {
   TRIAL_ACTIVE
   ACTIVE_PAID
   INACTIVE_EXPIRED
   INACTIVE_CANCELED
+}
+
+enum LoyaltyPlaybookStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum LoyaltyPlaybookType {
+  SECOND_VISIT_BOOSTER
+  WE_MISS_YOU
+  VIP_THANK_YOU
+  SERVICE_RECOVERY
+  CUSTOM
+}
+
+enum LoyaltyAudience {
+  FIRST_TIME
+  REPEAT
+  LAPSED_30_DAYS
+  HIGH_FREQUENCY
+}
+
+enum LoyaltyTrigger {
+  FEEDBACK_POSITIVE
+  FEEDBACK_NEUTRAL
+  FEEDBACK_NEGATIVE
+  LIFECYCLE_LAPSED_30_DAYS
+}
+
+enum LoyaltyOfferKind {
+  FLAT_DISCOUNT
+  FREE_ADD_ON
+  PRIORITY_ACCESS
+  CUSTOM
+}
+
+enum LoyaltyTemplateCategory {
+  GREAT
+  OKAY
+  NOT_GOOD
+  LAPSED
+}
+
+enum LoyaltyChannel {
+  EMAIL
+  SMS
+}
+
+enum LoyaltyMessageStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+  CANCELED
+}
+
+enum LoyaltyConversionType {
+  BOOKING
+  REVIEW
 }

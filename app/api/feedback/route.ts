@@ -5,6 +5,7 @@ import {
   Sentiment,
 } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { queueLoyaltyMessagesFromFeedback } from "@/lib/loyalty/feedback-trigger";
 import { sendFeedbackAlerts } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { evaluateBusinessAccess } from "@/lib/subscription-access";
@@ -280,6 +281,19 @@ export async function POST(request: Request) {
       hasMessage: Boolean(message),
     },
   });
+
+  try {
+    await queueLoyaltyMessagesFromFeedback({
+      businessId: location.business.id,
+      locationId: location.id,
+      feedbackId: feedback.id,
+      sentiment,
+      customerName: customerName || null,
+      customerEmail: customerEmail || null,
+    });
+  } catch {
+    // Loyalty queueing should not block feedback capture.
+  }
 
   let alerts: { email: "sent" | "failed" | "skipped"; sms: "sent" | "failed" | "skipped" } = {
     email: "failed",

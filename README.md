@@ -104,7 +104,41 @@ Copy `.env.example` to `.env` and set:
 - `MANAGE_TOKEN_SECRET` (required in production for secure owner manage links)
 - `OWNER_SESSION_SECRET` (optional; falls back to `MANAGE_TOKEN_SECRET`)
 - Optional: `NEXT_PUBLIC_APP_URL`
+- Optional (loyalty booking fallback): `LOYALTY_DEFAULT_BOOKING_LINK`
+- Required for scheduled loyalty processing: `CRON_SECRET`
 - Optional (SMS alerts): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_PHONE`
+
+### Scheduled loyalty processing
+
+Loyalty emails are queued and processed by calling:
+
+- `POST /api/cron/loyalty/process`
+
+This endpoint requires `CRON_SECRET` via `Authorization: Bearer <CRON_SECRET>` (or `x-cron-secret`).
+
+Short-term hosting can use Vercel scheduled jobs. When migrating off Vercel, add an OS cron entry on EC2 to call this endpoint on your desired cadence (for example every 5-15 minutes). Keep the same `CRON_SECRET` protection in place.
+
+EC2 helper script:
+
+- `scripts/cron/loyalty-process.sh`
+
+Example EC2 setup:
+
+```bash
+chmod +x scripts/cron/loyalty-process.sh
+```
+
+```bash
+export APP_BASE_URL="https://your-domain.com"
+export CRON_SECRET="your-shared-secret"
+export LIMIT_PER_BUSINESS="25"
+```
+
+Sample crontab (every 5 minutes):
+
+```cron
+*/5 * * * * APP_BASE_URL="https://your-domain.com" CRON_SECRET="your-shared-secret" LIMIT_PER_BUSINESS="25" /path/to/repo/scripts/cron/loyalty-process.sh >> /var/log/attunebridge-loyalty-cron.log 2>&1
+```
 
 ### Setup
 

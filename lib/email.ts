@@ -19,6 +19,37 @@ type NotificationResult = {
   errorMessage: string | null;
 };
 
+type LoyaltyEmailInput = {
+  toEmail: string;
+  customerName?: string | null;
+  businessName: string;
+  subject: string;
+  previewText?: string | null;
+  body: string;
+  ctaLabel: string;
+  offerText?: string | null;
+  bookingLink?: string | null;
+  reviewLink?: string | null;
+};
+
+function interpolateTemplate(
+  template: string,
+  input: {
+    firstName: string;
+    businessName: string;
+    offerText: string;
+    bookingLink: string;
+    reviewLink: string;
+  },
+) {
+  return template
+    .replaceAll("{first_name}", input.firstName)
+    .replaceAll("{business_name}", input.businessName)
+    .replaceAll("{offer_text}", input.offerText)
+    .replaceAll("{booking_link}", input.bookingLink)
+    .replaceAll("{review_link}", input.reviewLink);
+}
+
 export async function sendFeedbackNotification(
   input: NotificationInput,
 ): Promise<NotificationResult> {
@@ -67,6 +98,85 @@ export async function sendFeedbackNotification(
     };
   } catch (error) {
     console.warn("Feedback notification failed.", error);
+    return {
+      sent: false,
+      skipped: false,
+      providerMessageId: null,
+      errorMessage: "Email provider request failed.",
+    };
+  }
+}
+
+export async function sendLoyaltyMessageEmail(input: LoyaltyEmailInput): Promise<NotificationResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !fromEmail) {
+    console.warn(
+      "Loyalty email skipped: RESEND_API_KEY or RESEND_FROM_EMAIL is missing.",
+    );
+    return {
+      sent: false,
+      skipped: true,
+      providerMessageId: null,
+      errorMessage: "Email provider is not configured.",
+    };
+  }
+
+  const resend = new Resend(apiKey);
+  const firstName = input.customerName?.trim() ? input.customerName.trim() : "there";
+  const bookingLink =
+    input.bookingLink?.trim() || process.env.LOYALTY_DEFAULT_BOOKING_LINK || "https://example.com/book";
+  const reviewLink = input.reviewLink?.trim() || bookingLink;
+  const offerText = input.offerText?.trim() || "a thank-you perk";
+
+  const subject = interpolateTemplate(input.subject, {
+    firstName,
+    businessName: input.businessName,
+    offerText,
+    bookingLink,
+    reviewLink,
+  });
+  const previewText = input.previewText
+    ? interpolateTemplate(input.previewText, {
+        firstName,
+        businessName: input.businessName,
+        offerText,
+        bookingLink,
+        reviewLink,
+      })
+    : null;
+  const body = interpolateTemplate(input.body, {
+    firstName,
+    businessName: input.businessName,
+    offerText,
+    bookingLink,
+    reviewLink,
+  });
+
+  const textBody = [body, "", `${input.ctaLabel}: ${bookingLink}`].join("\n");
+  const htmlBody = [
+    `<p>${body}</p>`,
+    `<p><a href="${bookingLink}">${input.ctaLabel}</a></p>`,
+  ].join("");
+
+  try {
+    const result = await resend.emails.send({
+      from: fromEmail,
+      to: input.toEmail,
+      subject,
+      text: previewText ? `${previewText}\n\n${textBody}` : textBody,
+      html: previewText ? `<p>${previewText}</p>${htmlBody}` : htmlBody,
+    });
+
+    return {
+      sent: true,
+      skipped: false,
+      providerMessageId: result.data?.id ?? null,
+      errorMessage: null,
+    };
+  } catch (error) {
+    console.warn("Loyalty email send failed.", error);
     return {
       sent: false,
       skipped: false,

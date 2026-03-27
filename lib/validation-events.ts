@@ -12,6 +12,18 @@ export const validationEvent = {
   moduleSubscriptionUpdated: "module_subscription_updated",
   ownerFeatureRequestSubmitted: "owner_feature_request_submitted",
   ownerAccessLinkIssued: "owner_access_link_issued",
+  schedulerContactAdded: "scheduler_contact_added",
+  schedulerOfferSent: "scheduler_offer_sent",
+  schedulerOfferClaimed: "scheduler_offer_claimed",
+  schedulerOfferClosed: "scheduler_offer_closed",
+  schedulerContactOptedOut: "scheduler_contact_opted_out",
+  schedulerContactOptedIn: "scheduler_contact_opted_in",
+  loyaltyPlaybookCreated: "loyalty_playbook_created",
+  loyaltyOfferCreated: "loyalty_offer_created",
+  loyaltyTemplateCreated: "loyalty_template_created",
+  loyaltyMessagesQueued: "loyalty_messages_queued",
+  loyaltyMessagesProcessed: "loyalty_messages_processed",
+  loyaltyRecoveryResolved: "loyalty_recovery_resolved",
 } as const;
 
 type ValidationEventName = (typeof validationEvent)[keyof typeof validationEvent];
