@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type DashboardModule = "FEEDBACK" | "REVIEWS" | "SCHEDULER" | "LOYALTY";
+type DashboardModule = "FEEDBACK" | "REVIEWS" | "SCHEDULER" | "LOYALTY" | "MISSED_CALL_TEXTBACK";
 
 type OwnerWorkspaceNavProps = {
   locationSlug: string;
@@ -15,6 +15,7 @@ const MODULE_LABELS: Record<DashboardModule, string> = {
   REVIEWS: "Reviews",
   SCHEDULER: "Last-Minute Scheduler",
   LOYALTY: "Loyalty Builder",
+  MISSED_CALL_TEXTBACK: "Missed Call Text Back",
 };
 
 export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspaceNavProps) {
@@ -35,6 +36,14 @@ export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspa
         module,
         href: "/dashboard/scheduler",
         active: pathname === "/dashboard/scheduler",
+      };
+    }
+
+    if (module === "MISSED_CALL_TEXTBACK") {
+      return {
+        module,
+        href: "/dashboard/textback",
+        active: pathname === "/dashboard/textback" || pathname.startsWith("/dashboard/textback/"),
       };
     }
 

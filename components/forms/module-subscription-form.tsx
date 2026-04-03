@@ -29,12 +29,14 @@ const MODULE_LABELS: Record<ModuleKey, string> = {
   REVIEWS: "Reviews",
   SCHEDULER: "Last-Minute Scheduler",
   LOYALTY: "Loyalty Builder",
+  MISSED_CALL_TEXTBACK: "Missed Call Text Back",
 };
 
 const MODULE_HELP_TEXT: Record<ModuleKey, string> = {
   REVIEWS: "Control access to your core private feedback and review workflow.",
   SCHEDULER: "Launch last-minute discounted appointment slots to fill your calendar fast.",
   LOYALTY: "Run simple repeat-visit offers and loyalty campaigns.",
+  MISSED_CALL_TEXTBACK: "Automatically text callers when your team misses a call.",
 };
 
 function getStatusClass(status: ModuleStatus) {

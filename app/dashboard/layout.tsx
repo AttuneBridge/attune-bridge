@@ -4,7 +4,7 @@ import { PublicHeaderNav } from "@/components/navigation/public-header-nav";
 import { getEnabledModulesForBusiness } from "@/lib/module-subscriptions";
 import { getOwnerSession } from "@/lib/owner-session";
 
-type DashboardNavModule = "REVIEWS" | "SCHEDULER" | "LOYALTY";
+type DashboardNavModule = "REVIEWS" | "SCHEDULER" | "LOYALTY" | "MISSED_CALL_TEXTBACK";
 
 export default async function DashboardLayout({
   children,
@@ -23,7 +23,10 @@ export default async function DashboardLayout({
     ),
   ).filter(
     (module): module is DashboardNavModule =>
-      module === "REVIEWS" || module === "SCHEDULER" || module === "LOYALTY",
+      module === "REVIEWS" ||
+      module === "SCHEDULER" ||
+      module === "LOYALTY" ||
+      module === "MISSED_CALL_TEXTBACK",
   );
 
   return (

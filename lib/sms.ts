@@ -8,6 +8,7 @@ type SmsResult = {
 type SendSmsInput = {
   toPhone: string;
   body: string;
+  fromPhone?: string;
 };
 
 function normalizePhone(phone: string) {
@@ -17,7 +18,7 @@ function normalizePhone(phone: string) {
 export async function sendSmsNotification(input: SendSmsInput): Promise<SmsResult> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromPhone = process.env.TWILIO_FROM_PHONE;
+  const fromPhone = input.fromPhone ?? process.env.TWILIO_FROM_PHONE;
 
   if (!accountSid || !authToken || !fromPhone) {
     return {

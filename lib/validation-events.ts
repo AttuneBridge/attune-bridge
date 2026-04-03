@@ -24,6 +24,8 @@ export const validationEvent = {
   loyaltyMessagesQueued: "loyalty_messages_queued",
   loyaltyMessagesProcessed: "loyalty_messages_processed",
   loyaltyRecoveryResolved: "loyalty_recovery_resolved",
+  missedCallAutoReplySent: "missed_call_auto_reply_sent",
+  missedCallReplyForwarded: "missed_call_reply_forwarded",
 } as const;
 
 type ValidationEventName = (typeof validationEvent)[keyof typeof validationEvent];

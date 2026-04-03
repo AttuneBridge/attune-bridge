@@ -13,6 +13,7 @@ const OWNER_MANAGED_MODULES: Array<Exclude<AppModule, "FEEDBACK">> = [
   AppModule.REVIEWS,
   AppModule.SCHEDULER,
   AppModule.LOYALTY,
+  AppModule.MISSED_CALL_TEXTBACK,
 ];
 
 function formatDate(date: Date | null) {
@@ -129,7 +130,7 @@ export default async function DashboardHomePage() {
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Dashboard Home</p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Welcome back, {workspace.businessName}</h1>
           <p className="text-sm text-slate-700">
-            One place to manage reviews, last-minute scheduling offers, and loyalty builder workflows.
+            One place to manage reviews, missed call text-backs, last-minute scheduling offers, and loyalty builder workflows.
           </p>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
@@ -203,6 +204,12 @@ export default async function DashboardHomePage() {
             >
               Open reviews workspace
             </Link>
+            <Link
+              href="/dashboard/textback"
+              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
+            >
+              Open missed call text back
+            </Link>
           </div>
         </Card>
 
@@ -224,7 +231,7 @@ export default async function DashboardHomePage() {
 
           <h2 className="text-lg font-semibold text-slate-900">Module subscriptions</h2>
           <p className="text-sm text-slate-700">
-            Turn on Last-Minute Scheduler and Loyalty Builder as your workflow expands.
+            Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
           </p>
           <ModuleSubscriptionForm businessId={workspace.businessId} moduleSubscriptions={moduleSubscriptionsForForm} />
         </Card>

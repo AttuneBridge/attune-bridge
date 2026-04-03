@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type DashboardModule = "REVIEWS" | "SCHEDULER" | "LOYALTY";
+type DashboardModule = "REVIEWS" | "SCHEDULER" | "LOYALTY" | "MISSED_CALL_TEXTBACK";
 
 type DashboardNavProps = {
   enabledModules: DashboardModule[];
@@ -13,12 +13,14 @@ const MODULE_LABELS: Record<DashboardModule, string> = {
   REVIEWS: "Reviews",
   SCHEDULER: "Last-Minute Scheduler",
   LOYALTY: "Loyalty Builder",
+  MISSED_CALL_TEXTBACK: "Missed Call Text Back",
 };
 
 const MODULE_PATHS: Record<DashboardModule, string> = {
   REVIEWS: "/dashboard/reviews",
   SCHEDULER: "/dashboard/scheduler",
   LOYALTY: "/dashboard/loyalty",
+  MISSED_CALL_TEXTBACK: "/dashboard/textback",
 };
 
 export function DashboardNav({ enabledModules }: DashboardNavProps) {
@@ -43,7 +45,7 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
 
           {enabledModules.map((module) => {
             const href = MODULE_PATHS[module];
-            const isActive = module === "REVIEWS" ? pathname.startsWith("/dashboard/reviews") : pathname === href;
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
 
             return (
               <Link

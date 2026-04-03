@@ -35,6 +35,8 @@ model Business {
   loyaltyTemplates     LoyaltyTemplate[]
   loyaltyMessages      LoyaltyMessage[]
   loyaltyConversions   LoyaltyConversion[]
+  missedCallConfig     MissedCallConfig?
+  missedCallEvents     MissedCallEvent[]
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
 
@@ -42,6 +44,35 @@ model Business {
   @@index([trialEndsAt])
   @@index([paidThrough])
   @@index([autoRenewEnabled])
+}
+
+model MissedCallConfig {
+  id               String   @id @default(cuid())
+  businessId       String   @unique
+  twilioPhone      String   @unique
+  autoReplyMessage String   @default("Hey - sorry we missed your call. How can we help?")
+  isActive         Boolean  @default(true)
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([twilioPhone])
+}
+
+model MissedCallEvent {
+  id                String              @id @default(cuid())
+  businessId        String
+  callerPhone       String
+  twilioCallSid     String              @unique
+  smsStatus         MissedCallSmsStatus @default(PENDING)
+  providerMessageId String?
+  errorMessage      String?
+  replyForwardedAt  DateTime?
+  business          Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt         DateTime            @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([businessId, callerPhone])
 }
 
 model BusinessModuleSubscription {
@@ -357,6 +388,14 @@ enum AppModule {
   REVIEWS
   SCHEDULER
   LOYALTY
+  MISSED_CALL_TEXTBACK
+}
+
+enum MissedCallSmsStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
 }
 
 enum ModuleSubscriptionStatus {

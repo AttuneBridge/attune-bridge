@@ -10,6 +10,7 @@ const OWNER_MANAGED_MODULES: AppModule[] = [
   AppModule.REVIEWS,
   AppModule.SCHEDULER,
   AppModule.LOYALTY,
+  AppModule.MISSED_CALL_TEXTBACK,
 ];
 
 export async function POST(

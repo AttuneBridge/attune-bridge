@@ -11,6 +11,7 @@ export const APP_MODULE_ORDER: AppModule[] = [
   AppModule.REVIEWS,
   AppModule.SCHEDULER,
   AppModule.LOYALTY,
+  AppModule.MISSED_CALL_TEXTBACK,
 ];
 
 const ENABLED_STATUSES: ModuleSubscriptionStatus[] = [

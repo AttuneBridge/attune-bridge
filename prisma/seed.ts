@@ -37,6 +37,7 @@ async function main() {
       instantEmailNeutral: true,
       instantEmailNegative: true,
       smsNegativeEnabled: false,
+      alertPhone: "+15550100099",
     },
     create: {
       name: "Demo Coffee Co",
@@ -50,6 +51,7 @@ async function main() {
       instantEmailNeutral: true,
       instantEmailNegative: true,
       smsNegativeEnabled: false,
+      alertPhone: "+15550100099",
     },
   });
 
@@ -72,7 +74,7 @@ async function main() {
     },
   });
 
-  const moduleSeeds = [AppModule.SCHEDULER, AppModule.LOYALTY];
+  const moduleSeeds = [AppModule.SCHEDULER, AppModule.LOYALTY, AppModule.MISSED_CALL_TEXTBACK];
 
   for (const module of moduleSeeds) {
     await prisma.businessModuleSubscription.upsert({
@@ -109,6 +111,8 @@ async function main() {
 
   await prisma.schedulerOffer.deleteMany({ where: { businessId: business.id } });
   await prisma.schedulerContact.deleteMany({ where: { businessId: business.id } });
+  await prisma.missedCallEvent.deleteMany({ where: { businessId: business.id } });
+  await prisma.missedCallConfig.deleteMany({ where: { businessId: business.id } });
 
   await prisma.loyaltyConversion.deleteMany({
     where: {
@@ -248,6 +252,15 @@ async function main() {
         customerEmail: "alex@example.com",
       },
     ],
+  });
+
+  await prisma.missedCallConfig.create({
+    data: {
+      businessId: business.id,
+      twilioPhone: "+15550100123",
+      autoReplyMessage: "Hey - sorry we missed your call. How can we help?",
+      isActive: true,
+    },
   });
 
   const loyaltyOffers = await prisma.$transaction([
