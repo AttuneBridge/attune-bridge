@@ -485,7 +485,7 @@ export function LoyaltyWorkspace({
         <div className="mt-2 space-y-2 text-sm text-slate-700">
           <p>
             <span className="font-semibold text-slate-900">Offer</span>: the customer incentive (what they get), like
-            "10% off your next visit" or "free add-on with your next booking."
+            &quot;10% off your next visit&quot; or &quot;free add-on with your next booking.&quot;
           </p>
           <p>
             <span className="font-semibold text-slate-900">Template</span>: the message your customer receives (what you say), including
