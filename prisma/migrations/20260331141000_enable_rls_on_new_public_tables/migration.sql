@@ -1,0 +1,12 @@
+-- Enable RLS on newer public tables so Supabase Security Advisor passes.
+ALTER TABLE IF EXISTS "public"."OwnerFeatureRequest" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."ValidationEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."BusinessModuleSubscription" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."SchedulerOffer" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."SchedulerOfferRecipient" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."SchedulerContact" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."LoyaltyPlaybook" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."LoyaltyOffer" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."LoyaltyTemplate" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."LoyaltyMessage" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "public"."LoyaltyConversion" ENABLE ROW LEVEL SECURITY;
