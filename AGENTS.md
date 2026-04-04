@@ -267,7 +267,7 @@ Note: `AttuneBridge` is an organization, so the authenticated `gh` user must be 
 Preferred command:
 
 ```bash
-gh_repo_user_switch
+pnpm gh:user:switch
 ```
 
 Manual fallback:
