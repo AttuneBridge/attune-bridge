@@ -246,7 +246,7 @@ This repository uses Jacob Langley's personal GitHub identity at the repo level.
 
 - GitHub account: `jacobnlangley`
 - Git user.name: `jacobnlangley`
-- Git user.email: `71146908+jacobnlangley@users.noreply.github.com`
+- Git user.email: `4956721+jacobnlangley@users.noreply.github.com`
 - Expected remote owner: `AttuneBridge` organization (for example, `https://github.com/AttuneBridge/attune-bridge`)
 
 Do not use `fullh3art` credentials in this repository.
