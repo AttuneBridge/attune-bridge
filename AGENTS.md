@@ -306,6 +306,7 @@ Use a two-branch deployment model:
 
 - `dev` is the integration branch and deploys to `attune-bridge-dev` (Vercel dev project production branch = `dev`).
 - `main` is the release branch and deploys to `attune-bridge-prod` (Vercel prod project production branch = `main`).
+- Preview deployments are disabled for feature/chore branches; only production-branch deploys run in each project.
 - Feature/fix/docs/chore branches are cut from `dev` unless explicitly handling a production hotfix.
 - If a hotfix lands on `main` first, sync it back into `dev` immediately.
 

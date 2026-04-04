@@ -221,7 +221,10 @@ AttuneBridge uses a two-branch release flow:
   - Production branch: `main`
   - Purpose: live production environment
 
-Feature branches still get standard Vercel preview deploys.
+Preview deployments are intentionally skipped via `vercel.json` so only production-branch deploys run per project:
+
+- `attune-bridge-dev` deploys on `dev`
+- `attune-bridge-prod` deploys on `main`
 
 ## Environment Profile Files
 
