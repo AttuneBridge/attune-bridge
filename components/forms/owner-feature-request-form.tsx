@@ -4,7 +4,6 @@ import { FormEvent, useState } from "react";
 
 type OwnerFeatureRequestFormProps = {
   businessId: string;
-  manageToken?: string;
 };
 
 type FeatureRequestResponse = {
@@ -12,9 +11,8 @@ type FeatureRequestResponse = {
   error?: string;
 };
 
-export function OwnerFeatureRequestForm({ businessId, manageToken }: OwnerFeatureRequestFormProps) {
+export function OwnerFeatureRequestForm({ businessId }: OwnerFeatureRequestFormProps) {
   const maxDetailsLength = 1000;
-  const [ownerEmail, setOwnerEmail] = useState("");
   const [details, setDetails] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,11 +21,10 @@ export function OwnerFeatureRequestForm({ businessId, manageToken }: OwnerFeatur
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const normalizedEmail = ownerEmail.trim().toLowerCase();
     const normalizedDetails = details.trim();
 
-    if (!normalizedEmail || !normalizedDetails) {
-      setError("Please add your owner email and feature request.");
+    if (!normalizedDetails) {
+      setError("Please add your feature request.");
       setSuccessMessage(null);
       return;
     }
@@ -43,9 +40,7 @@ export function OwnerFeatureRequestForm({ businessId, manageToken }: OwnerFeatur
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ownerEmail: normalizedEmail,
             details: normalizedDetails,
-            ...(manageToken ? { manageToken } : {}),
           }),
         },
       );
@@ -68,21 +63,6 @@ export function OwnerFeatureRequestForm({ businessId, manageToken }: OwnerFeatur
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <label htmlFor="featureRequestOwnerEmail" className="mb-1.5 block text-sm font-medium text-slate-800">
-          Owner email
-        </label>
-        <input
-          id="featureRequestOwnerEmail"
-          type="email"
-          value={ownerEmail}
-          onChange={(event) => setOwnerEmail(event.target.value)}
-          className="w-full rounded-lg border border-slate-300 p-3 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-slate-500"
-          placeholder="owner@business.com"
-          required
-        />
-      </div>
-
       <div>
         <label htmlFor="featureRequestDetails" className="mb-1.5 block text-sm font-medium text-slate-800">
           What feature would help most?

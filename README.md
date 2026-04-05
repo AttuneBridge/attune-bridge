@@ -99,13 +99,12 @@ Secondary success signal:
 Copy `.env.example` to `.env.local` and set:
 
 - `DATABASE_URL`
-- `AUTH_MODE` (`legacy`, `dual`, or `clerk_only`; default `dual`)
+- `AUTH_MODE` (`clerk_only`; default `clerk_only`)
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (required when Clerk auth is enabled)
 - `CLERK_SECRET_KEY` (required when Clerk auth is enabled)
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `MANAGE_TOKEN_SECRET` (required in production for secure owner manage links)
-- `OWNER_SESSION_SECRET` (optional; falls back to `MANAGE_TOKEN_SECRET`)
 - Optional: `NEXT_PUBLIC_APP_URL`
 - Optional (loyalty booking fallback): `LOYALTY_DEFAULT_BOOKING_LINK`
 - Required for scheduled loyalty processing: `CRON_SECRET`
@@ -114,13 +113,12 @@ Copy `.env.example` to `.env.local` and set:
 ### Environment value source checklist
 
 - `DATABASE_URL`: Supabase project settings -> Database -> Connection string (Prisma format).
-- `AUTH_MODE`: auth migration mode (`legacy` to only use owner session, `dual` to accept Clerk + legacy fallback, `clerk_only` to enforce Clerk).
+- `AUTH_MODE`: auth mode (`clerk_only` enforces Clerk sign-in for owner workspace routes).
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk dashboard -> API Keys -> Publishable key.
 - `CLERK_SECRET_KEY`: Clerk dashboard -> API Keys -> Secret key.
 - `RESEND_API_KEY`: Resend dashboard -> API Keys.
 - `RESEND_FROM_EMAIL`: verified sender/domain in Resend (for example `hello@yourdomain.com`).
 - `MANAGE_TOKEN_SECRET`: app secret; generate a random 32+ byte value.
-- `OWNER_SESSION_SECRET`: app secret; generate a random 32+ byte value (or omit to fall back to `MANAGE_TOKEN_SECRET`).
 - `CRON_SECRET`: shared secret used by cron callers and `/api/cron/loyalty/process`.
 - `NEXT_PUBLIC_APP_URL`: base URL for current environment (`http://localhost:3000`, dev domain, or production domain).
 - `LOYALTY_DEFAULT_BOOKING_LINK`: optional fallback booking URL for loyalty messages.
@@ -129,7 +127,7 @@ Copy `.env.example` to `.env.local` and set:
 To generate local secrets quickly:
 
 ```bash
-node -e "const c=require('crypto'); console.log('MANAGE_TOKEN_SECRET='+c.randomBytes(32).toString('hex')); console.log('OWNER_SESSION_SECRET='+c.randomBytes(32).toString('hex')); console.log('CRON_SECRET='+c.randomBytes(32).toString('hex'));"
+node -e "const c=require('crypto'); console.log('MANAGE_TOKEN_SECRET='+c.randomBytes(32).toString('hex')); console.log('CRON_SECRET='+c.randomBytes(32).toString('hex'));"
 ```
 
 Env sync commands:

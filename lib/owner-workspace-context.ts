@@ -4,38 +4,11 @@ import { requireDashboardIdentity } from "@/lib/auth/require-dashboard-identity"
 import { prisma } from "@/lib/prisma";
 
 export async function getOwnerWorkspaceContextOrRedirect() {
-  const authContext = await requireDashboardIdentity("/dashboard");
-
-  if (authContext.source === "legacy") {
-    const location = await prisma.location.findUnique({
-      where: { slug: authContext.ownerSession.locationSlug },
-      select: {
-        slug: true,
-        name: true,
-        business: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    if (!location || location.business.id !== authContext.ownerSession.businessId) {
-      redirectToDashboardAccess("/dashboard");
-    }
-
-    return {
-      businessId: location.business.id,
-      businessName: location.business.name,
-      locationName: location.name,
-      locationSlug: location.slug,
-    };
-  }
+  const identity = await requireDashboardIdentity("/dashboard");
 
   const membership = await prisma.businessMembership.findFirst({
     where: {
-      userId: authContext.identity.userId,
+      userId: identity.userId,
       role: BusinessMembershipRole.OWNER,
     },
     select: {

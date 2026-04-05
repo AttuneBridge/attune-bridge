@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { OwnerSignoutButton } from "@/components/forms/owner-signout-button";
 
 type PublicHeaderNavProps = {
   hasDashboardAccess: boolean;
-  hasLegacyOwnerSession: boolean;
 };
 
 function getLinkClass(isActive: boolean) {
@@ -15,7 +13,7 @@ function getLinkClass(isActive: boolean) {
     : "hover:text-slate-900";
 }
 
-export function PublicHeaderNav({ hasDashboardAccess, hasLegacyOwnerSession }: PublicHeaderNavProps) {
+export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
   const pathname = usePathname();
 
   const isHomeActive = pathname === "/";
@@ -47,16 +45,13 @@ export function PublicHeaderNav({ hasDashboardAccess, hasLegacyOwnerSession }: P
       </Link>
 
       {hasDashboardAccess ? (
-        <>
-          <Link
-            href="/dashboard"
-            aria-current={isOwnerAreaActive ? "page" : undefined}
-            className={getLinkClass(isOwnerAreaActive)}
-          >
-            Dashboard
-          </Link>
-          {hasLegacyOwnerSession ? <OwnerSignoutButton /> : null}
-        </>
+        <Link
+          href="/dashboard"
+          aria-current={isOwnerAreaActive ? "page" : undefined}
+          className={getLinkClass(isOwnerAreaActive)}
+        >
+          Dashboard
+        </Link>
       ) : (
         <Link
           href="/dashboard/access"
