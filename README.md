@@ -99,6 +99,8 @@ Secondary success signal:
 Copy `.env.example` to `.env.local` and set:
 
 - `DATABASE_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (required when Clerk auth is enabled)
+- `CLERK_SECRET_KEY` (required when Clerk auth is enabled)
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `MANAGE_TOKEN_SECRET` (required in production for secure owner manage links)
@@ -111,6 +113,8 @@ Copy `.env.example` to `.env.local` and set:
 ### Environment value source checklist
 
 - `DATABASE_URL`: Supabase project settings -> Database -> Connection string (Prisma format).
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk dashboard -> API Keys -> Publishable key.
+- `CLERK_SECRET_KEY`: Clerk dashboard -> API Keys -> Secret key.
 - `RESEND_API_KEY`: Resend dashboard -> API Keys.
 - `RESEND_FROM_EMAIL`: verified sender/domain in Resend (for example `hello@yourdomain.com`).
 - `MANAGE_TOKEN_SECRET`: app secret; generate a random 32+ byte value.

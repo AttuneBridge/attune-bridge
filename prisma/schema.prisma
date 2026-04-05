@@ -24,6 +24,7 @@ model Business {
   quietHoursStart      String?
   quietHoursEnd        String?
   locations            Location[]
+  memberships          BusinessMembership[]
   notificationEvents   NotificationEvent[]
   featureRequests      OwnerFeatureRequest[]
   validationEvents     ValidationEvent[]
@@ -44,6 +45,33 @@ model Business {
   @@index([trialEndsAt])
   @@index([paidThrough])
   @@index([autoRenewEnabled])
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  clerkUserId         String?              @unique
+  email               String               @unique
+  systemRole          SystemRole           @default(USER)
+  businessMemberships BusinessMembership[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([systemRole])
+}
+
+model BusinessMembership {
+  id         String                 @id @default(cuid())
+  userId     String
+  businessId String
+  role       BusinessMembershipRole @default(OWNER)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  @@unique([userId, businessId])
+  @@index([businessId, role])
+  @@index([userId, role])
 }
 
 model MissedCallConfig {
@@ -483,4 +511,14 @@ enum LoyaltyMessageStatus {
 enum LoyaltyConversionType {
   BOOKING
   REVIEW
+}
+
+enum SystemRole {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum BusinessMembershipRole {
+  OWNER
 }
