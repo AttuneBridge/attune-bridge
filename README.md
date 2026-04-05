@@ -143,6 +143,11 @@ Env sync commands:
 - `pnpm env:vercel:push-dev`: copy non-empty values from `.env.development.local` into `.env.vercel.development`.
 - `pnpm env:vercel:push-prod`: copy non-empty values from `.env.production.local` into `.env.vercel.production`.
 
+Auth migration commands:
+
+- `pnpm auth:backfill-owner-users:dry-run`: preview owner user + membership backfill changes.
+- `pnpm auth:backfill-owner-users`: create missing owner users and owner memberships from existing businesses.
+
 `pnpm env:push` skips empty source values by default so blank local values do not overwrite populated Vercel profile files.
 
 ### Scheduled loyalty processing

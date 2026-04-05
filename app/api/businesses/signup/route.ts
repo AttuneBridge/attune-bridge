@@ -1,5 +1,7 @@
-import { SubscriptionStatus } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
+import { BusinessMembershipRole, SubscriptionStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { allowsClerkAuth } from "@/lib/auth/mode";
 import { createManageToken } from "@/lib/manage-token";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
@@ -37,6 +39,25 @@ async function findAvailableSlug(base: string) {
   }
 
   throw new Error("Could not generate a unique location slug.");
+}
+
+function hasClerkServerConfig() {
+  return (
+    typeof process.env.CLERK_SECRET_KEY === "string" &&
+    process.env.CLERK_SECRET_KEY.length > 0 &&
+    typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 0
+  );
+}
+
+async function getClerkUserIdForSignup() {
+  if (!allowsClerkAuth() || !hasClerkServerConfig()) {
+    return null;
+  }
+
+  const authState = await auth();
+
+  return authState.userId ?? null;
 }
 
 export async function POST(request: Request) {
@@ -90,6 +111,7 @@ export async function POST(request: Request) {
   trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
   const slug = await findAvailableSlug(`${businessName}-${locationName}`);
+  const clerkUserId = await getClerkUserIdForSignup();
 
   const created = await prisma.$transaction(async (tx) => {
     const business = await tx.business.create({
@@ -121,6 +143,42 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         slug: true,
+      },
+    });
+
+    const user = clerkUserId
+      ? await tx.user.upsert({
+          where: { clerkUserId },
+          update: {},
+          create: {
+            clerkUserId,
+            email: ownerEmail,
+          },
+          select: { id: true },
+        })
+      : await tx.user.upsert({
+          where: { email: ownerEmail },
+          update: {},
+          create: {
+            email: ownerEmail,
+          },
+          select: { id: true },
+        });
+
+    await tx.businessMembership.upsert({
+      where: {
+        userId_businessId: {
+          userId: user.id,
+          businessId: business.id,
+        },
+      },
+      update: {
+        role: BusinessMembershipRole.OWNER,
+      },
+      create: {
+        userId: user.id,
+        businessId: business.id,
+        role: BusinessMembershipRole.OWNER,
       },
     });
 
