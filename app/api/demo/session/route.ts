@@ -1,4 +1,4 @@
-import { BusinessMembershipRole } from "@prisma/client";
+import { BusinessMembershipRole, SystemRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { DEMO_OWNER_EMAIL, isDemoModeAllowedForHost } from "@/lib/demo/config";
 import { createDemoSessionToken, DEMO_SESSION_COOKIE_NAME } from "@/lib/demo/session";
@@ -20,19 +20,25 @@ function sanitizeReturnTo(value: string | null) {
   return trimmed;
 }
 
-export async function POST(request: Request) {
-  const host = request.headers.get("host");
+async function readReturnToFromRequest(request: Request) {
+  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
 
-  if (!isDemoModeAllowedForHost(host)) {
-    return NextResponse.json({ error: "Demo access is unavailable on this host." }, { status: 403 });
+  if (!contentType.includes("application/x-www-form-urlencoded") && !contentType.includes("multipart/form-data")) {
+    return "/dashboard";
   }
 
-  const formData = await request.formData();
-  const returnTo = sanitizeReturnTo(
-    typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null,
-  );
+  try {
+    const formData = await request.formData();
+    return sanitizeReturnTo(
+      typeof formData.get("returnTo") === "string" ? String(formData.get("returnTo")) : null,
+    );
+  } catch {
+    return "/dashboard";
+  }
+}
 
-  const membership = await prisma.businessMembership.findFirst({
+async function getDemoBusinessId() {
+  const existingMembership = await prisma.businessMembership.findFirst({
     where: {
       role: BusinessMembershipRole.OWNER,
       user: {
@@ -50,30 +56,104 @@ export async function POST(request: Request) {
     },
   });
 
-  if (!membership) {
-    return NextResponse.json(
-      { error: "Demo data is not ready yet. Run prisma seed." },
-      { status: 503 },
-    );
+  if (existingMembership) {
+    return existingMembership.businessId;
   }
 
-  const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
-  const token = createDemoSessionToken({ businessId: membership.businessId, expiresAt });
-
-  if (!token) {
-    return NextResponse.json({ error: "Demo session secret is missing." }, { status: 503 });
-  }
-
-  const response = NextResponse.redirect(new URL(returnTo, request.url));
-  response.cookies.set({
-    name: DEMO_SESSION_COOKIE_NAME,
-    value: token,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    expires: expiresAt,
+  const business = await prisma.business.findUnique({
+    where: {
+      email: DEMO_OWNER_EMAIL,
+    },
+    select: {
+      id: true,
+    },
   });
 
-  return response;
+  if (!business) {
+    return null;
+  }
+
+  const user = await prisma.user.upsert({
+    where: {
+      email: DEMO_OWNER_EMAIL,
+    },
+    update: {
+      systemRole: SystemRole.USER,
+    },
+    create: {
+      email: DEMO_OWNER_EMAIL,
+      systemRole: SystemRole.USER,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await prisma.businessMembership.upsert({
+    where: {
+      userId_businessId: {
+        userId: user.id,
+        businessId: business.id,
+      },
+    },
+    update: {
+      role: BusinessMembershipRole.OWNER,
+    },
+    create: {
+      userId: user.id,
+      businessId: business.id,
+      role: BusinessMembershipRole.OWNER,
+    },
+  });
+
+  return business.id;
+}
+
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed. Submit the demo access form from /demo-access." },
+    { status: 405 },
+  );
+}
+
+export async function POST(request: Request) {
+  try {
+    const host = request.headers.get("host");
+
+    if (!isDemoModeAllowedForHost(host)) {
+      return NextResponse.json({ error: "Demo access is unavailable on this host." }, { status: 403 });
+    }
+
+    const returnTo = await readReturnToFromRequest(request);
+    const demoBusinessId = await getDemoBusinessId();
+
+    if (!demoBusinessId) {
+      return NextResponse.json(
+        { error: "Demo business is not available yet. Run prisma seed." },
+        { status: 503 },
+      );
+    }
+
+    const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
+    const token = createDemoSessionToken({ businessId: demoBusinessId, expiresAt });
+
+    if (!token) {
+      return NextResponse.json({ error: "Demo session secret is missing." }, { status: 503 });
+    }
+
+    const response = NextResponse.redirect(new URL(returnTo, request.url));
+    response.cookies.set({
+      name: DEMO_SESSION_COOKIE_NAME,
+      value: token,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      expires: expiresAt,
+    });
+
+    return response;
+  } catch {
+    return NextResponse.json({ error: "Could not create demo session." }, { status: 500 });
+  }
 }
