@@ -63,7 +63,10 @@ export default async function DashboardLayout({
           <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
             AttuneBridge
           </Link>
-          <PublicHeaderNav hasOwnerSession={authContext.source === "legacy"} />
+          <PublicHeaderNav
+            hasDashboardAccess
+            hasLegacyOwnerSession={authContext.source === "legacy"}
+          />
         </div>
       </header>
       <DashboardNav enabledModules={dashboardNavModules} />

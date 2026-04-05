@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { OwnerSignoutButton } from "@/components/forms/owner-signout-button";
 
 type PublicHeaderNavProps = {
-  hasOwnerSession: boolean;
+  hasDashboardAccess: boolean;
+  hasLegacyOwnerSession: boolean;
 };
 
 function getLinkClass(isActive: boolean) {
@@ -14,7 +15,7 @@ function getLinkClass(isActive: boolean) {
     : "hover:text-slate-900";
 }
 
-export function PublicHeaderNav({ hasOwnerSession }: PublicHeaderNavProps) {
+export function PublicHeaderNav({ hasDashboardAccess, hasLegacyOwnerSession }: PublicHeaderNavProps) {
   const pathname = usePathname();
 
   const isHomeActive = pathname === "/";
@@ -45,7 +46,7 @@ export function PublicHeaderNav({ hasOwnerSession }: PublicHeaderNavProps) {
         Start Trial
       </Link>
 
-      {hasOwnerSession ? (
+      {hasDashboardAccess ? (
         <>
           <Link
             href="/dashboard"
@@ -54,7 +55,7 @@ export function PublicHeaderNav({ hasOwnerSession }: PublicHeaderNavProps) {
           >
             Dashboard
           </Link>
-          <OwnerSignoutButton />
+          {hasLegacyOwnerSession ? <OwnerSignoutButton /> : null}
         </>
       ) : (
         <Link
