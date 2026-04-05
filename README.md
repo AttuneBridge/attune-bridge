@@ -99,6 +99,7 @@ Secondary success signal:
 Copy `.env.example` to `.env.local` and set:
 
 - `DATABASE_URL`
+- `AUTH_MODE` (`legacy`, `dual`, or `clerk_only`; default `dual`)
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (required when Clerk auth is enabled)
 - `CLERK_SECRET_KEY` (required when Clerk auth is enabled)
 - `RESEND_API_KEY`
@@ -113,6 +114,7 @@ Copy `.env.example` to `.env.local` and set:
 ### Environment value source checklist
 
 - `DATABASE_URL`: Supabase project settings -> Database -> Connection string (Prisma format).
+- `AUTH_MODE`: auth migration mode (`legacy` to only use owner session, `dual` to accept Clerk + legacy fallback, `clerk_only` to enforce Clerk).
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk dashboard -> API Keys -> Publishable key.
 - `CLERK_SECRET_KEY`: Clerk dashboard -> API Keys -> Secret key.
 - `RESEND_API_KEY`: Resend dashboard -> API Keys.

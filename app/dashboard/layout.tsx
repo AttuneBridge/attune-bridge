@@ -1,16 +1,43 @@
 import Link from "next/link";
+import { BusinessMembershipRole } from "@prisma/client";
 import { DashboardNav } from "@/components/navigation/dashboard-nav";
 import { PublicHeaderNav } from "@/components/navigation/public-header-nav";
+import { redirectToDashboardAccess } from "@/lib/auth/redirects";
+import { requireDashboardIdentity } from "@/lib/auth/require-dashboard-identity";
 import { getEnabledModulesForBusiness } from "@/lib/module-subscriptions";
-import { getOwnerSession } from "@/lib/owner-session";
+import { prisma } from "@/lib/prisma";
 
 type DashboardNavModule = "REVIEWS" | "SCHEDULER" | "LOYALTY" | "MISSED_CALL_TEXTBACK";
 
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const ownerSession = await getOwnerSession();
-  const enabledModules = ownerSession ? await getEnabledModulesForBusiness(ownerSession.businessId) : [];
+  const authContext = await requireDashboardIdentity("/dashboard");
+
+  const businessId =
+    authContext.source === "legacy"
+      ? authContext.ownerSession.businessId
+      : (
+          await prisma.businessMembership.findFirst({
+            where: {
+              userId: authContext.identity.userId,
+              role: BusinessMembershipRole.OWNER,
+            },
+            select: {
+              businessId: true,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          })
+        )?.businessId;
+
+  const enabledModules = businessId ? await getEnabledModulesForBusiness(businessId) : [];
+
+  if (!businessId) {
+    redirectToDashboardAccess("/dashboard");
+  }
+
   const dashboardNavModules: DashboardNavModule[] = Array.from(
     new Set(
       enabledModules.flatMap((module) => {
@@ -36,10 +63,10 @@ export default async function DashboardLayout({
           <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
             AttuneBridge
           </Link>
-          <PublicHeaderNav hasOwnerSession={Boolean(ownerSession)} />
+          <PublicHeaderNav hasOwnerSession={authContext.source === "legacy"} />
         </div>
       </header>
-      {ownerSession ? <DashboardNav enabledModules={dashboardNavModules} /> : null}
+      <DashboardNav enabledModules={dashboardNavModules} />
       {children}
     </>
   );

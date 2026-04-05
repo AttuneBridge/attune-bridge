@@ -1,6 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { allowsClerkAuth } from "@/lib/auth/mode";
 
 const hasClerkConfig =
   typeof process.env.CLERK_SECRET_KEY === "string" &&
@@ -10,7 +11,7 @@ const hasClerkConfig =
 
 const passthrough = (_request: NextRequest) => NextResponse.next();
 
-export default hasClerkConfig ? clerkMiddleware() : passthrough;
+export default allowsClerkAuth() && hasClerkConfig ? clerkMiddleware() : passthrough;
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|assets/).*)"],
