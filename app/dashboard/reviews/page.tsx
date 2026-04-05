@@ -3,17 +3,12 @@ import { SubscriptionStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { OwnerFeatureRequestForm } from "@/components/forms/owner-feature-request-form";
 import { Card } from "@/components/ui/card";
-import { isManageTokenValidForBusiness } from "@/lib/manage-token";
 import { getModuleSubscriptionForBusiness } from "@/lib/module-subscriptions";
-import { getOwnerSession } from "@/lib/owner-session";
+import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
 import { getDayDelta } from "@/lib/subscription-countdown";
 import { evaluateBusinessAccess } from "@/lib/subscription-access";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
-
-type DashboardReviewsPageProps = {
-  searchParams: Promise<{ token?: string; slug?: string }>;
-};
 
 function formatDate(date: Date | null) {
   if (!date) {
@@ -42,21 +37,14 @@ function getStatusLabel(status: SubscriptionStatus) {
   }
 }
 
-export default async function DashboardReviewsPage({ searchParams }: DashboardReviewsPageProps) {
-  const ownerSession = await getOwnerSession();
-  const { token, slug } = await searchParams;
-  const manageToken = typeof token === "string" ? token.trim() : "";
-  const tokenSlug = typeof slug === "string" ? slug.trim() : "";
+export default async function DashboardReviewsPage() {
+  const workspace = await getOwnerWorkspaceContextOrRedirect();
 
   const location = await prisma.location.findFirst({
-    where: ownerSession
-      ? {
-          slug: ownerSession.locationSlug,
-          businessId: ownerSession.businessId,
-        }
-      : tokenSlug
-        ? { slug: tokenSlug }
-        : undefined,
+    where: {
+      slug: workspace.locationSlug,
+      businessId: workspace.businessId,
+    },
     select: {
       id: true,
       slug: true,
@@ -89,25 +77,6 @@ export default async function DashboardReviewsPage({ searchParams }: DashboardRe
 
   if (!location) {
     redirect("/dashboard/access");
-  }
-
-  const hasValidManageToken =
-    !ownerSession && manageToken.length > 0 && isManageTokenValidForBusiness(manageToken, location.business.id);
-
-  if (!ownerSession && !hasValidManageToken) {
-    return (
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
-        <Card className="space-y-3">
-          <h1 className="text-xl font-semibold text-slate-900">Owner workspace link expired or invalid</h1>
-          <p className="text-sm text-slate-600">
-            For account security, this page now requires your signed owner workspace link.
-          </p>
-          <Link href="/dashboard/access" className="text-sm font-medium text-slate-900 underline">
-            Request owner workspace access
-          </Link>
-        </Card>
-      </main>
-    );
   }
 
   const reviewsSubscription = await getModuleSubscriptionForBusiness(location.business.id, "REVIEWS");
@@ -251,7 +220,6 @@ export default async function DashboardReviewsPage({ searchParams }: DashboardRe
             </p>
             <OwnerFeatureRequestForm
               businessId={location.business.id}
-              manageToken={hasValidManageToken ? manageToken : undefined}
             />
           </div>
 

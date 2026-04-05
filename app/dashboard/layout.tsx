@@ -12,25 +12,22 @@ type DashboardNavModule = "REVIEWS" | "SCHEDULER" | "LOYALTY" | "MISSED_CALL_TEX
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const authContext = await requireDashboardIdentity("/dashboard");
+  const identity = await requireDashboardIdentity("/dashboard");
 
-  const businessId =
-    authContext.source === "legacy"
-      ? authContext.ownerSession.businessId
-      : (
-          await prisma.businessMembership.findFirst({
-            where: {
-              userId: authContext.identity.userId,
-              role: BusinessMembershipRole.OWNER,
-            },
-            select: {
-              businessId: true,
-            },
-            orderBy: {
-              createdAt: "asc",
-            },
-          })
-        )?.businessId;
+  const businessId = (
+    await prisma.businessMembership.findFirst({
+      where: {
+        userId: identity.userId,
+        role: BusinessMembershipRole.OWNER,
+      },
+      select: {
+        businessId: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    })
+  )?.businessId;
 
   const enabledModules = businessId ? await getEnabledModulesForBusiness(businessId) : [];
 
@@ -63,10 +60,7 @@ export default async function DashboardLayout({
           <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
             AttuneBridge
           </Link>
-          <PublicHeaderNav
-            hasDashboardAccess
-            hasLegacyOwnerSession={authContext.source === "legacy"}
-          />
+          <PublicHeaderNav hasDashboardAccess />
         </div>
       </header>
       <DashboardNav enabledModules={dashboardNavModules} />

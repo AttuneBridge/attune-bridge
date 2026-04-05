@@ -1,16 +1,31 @@
 import Link from "next/link";
+import { BusinessMembershipRole } from "@prisma/client";
 import { OwnerWorkspaceNav } from "@/components/navigation/owner-workspace-nav";
 import { getEnabledModulesForBusiness } from "@/lib/module-subscriptions";
 import { PublicHeaderNav } from "@/components/navigation/public-header-nav";
-import { getOwnerSession } from "@/lib/owner-session";
+import { getRequestIdentity } from "@/lib/identity/request-identity";
+import { prisma } from "@/lib/prisma";
 
 export default async function PrototypeLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const ownerSession = await getOwnerSession();
-  const enabledModules = ownerSession
-    ? await getEnabledModulesForBusiness(ownerSession.businessId)
-    : [];
+  const identity = await getRequestIdentity();
+  const membership = identity
+    ? await prisma.businessMembership.findFirst({
+        where: {
+          userId: identity.userId,
+          role: BusinessMembershipRole.OWNER,
+        },
+        select: {
+          businessId: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      })
+    : null;
+
+  const enabledModules = membership ? await getEnabledModulesForBusiness(membership.businessId) : [];
 
   return (
     <>
@@ -19,12 +34,10 @@ export default async function PrototypeLayout({
           <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
             AttuneBridge
           </Link>
-          <PublicHeaderNav hasDashboardAccess={Boolean(ownerSession)} hasLegacyOwnerSession={Boolean(ownerSession)} />
+          <PublicHeaderNav hasDashboardAccess={Boolean(membership)} />
         </div>
       </header>
-      {ownerSession ? (
-        <OwnerWorkspaceNav locationSlug={ownerSession.locationSlug} enabledModules={enabledModules} />
-      ) : null}
+      {membership ? <OwnerWorkspaceNav locationSlug="dashboard" enabledModules={enabledModules} /> : null}
       {children}
     </>
   );

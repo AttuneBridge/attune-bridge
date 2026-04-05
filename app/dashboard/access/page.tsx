@@ -2,11 +2,8 @@ import Link from "next/link";
 import { BusinessMembershipRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { OwnerDashboardSignInButton } from "@/components/auth/owner-dashboard-sign-in-button";
-import { OwnerAccessForm } from "@/components/forms/owner-access-form";
 import { Card } from "@/components/ui/card";
-import { allowsClerkAuth, allowsLegacyOwnerSession } from "@/lib/auth/mode";
 import { getRequestIdentity } from "@/lib/identity/request-identity";
-import { getOwnerSession } from "@/lib/owner-session";
 import { prisma } from "@/lib/prisma";
 
 type DashboardAccessPageProps = {
@@ -35,13 +32,8 @@ function hasClerkConfig() {
 }
 
 export default async function DashboardAccessPage({ searchParams }: DashboardAccessPageProps) {
-  const ownerSession = await getOwnerSession();
   const query = await searchParams;
   const returnTo = sanitizeReturnTo(typeof query.returnTo === "string" ? query.returnTo : undefined);
-
-  if (ownerSession) {
-    redirect(returnTo);
-  }
 
   const identity = await getRequestIdentity();
   const ownerMembership = identity
@@ -59,8 +51,7 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
     redirect(returnTo);
   }
 
-  const canUseClerkSignIn = allowsClerkAuth() && hasClerkConfig();
-  const canUseLegacyAccess = allowsLegacyOwnerSession();
+  const canUseClerkSignIn = hasClerkConfig();
   const isSignedInWithoutOwnerAccess = Boolean(identity && !ownerMembership);
 
   return (
@@ -74,38 +65,21 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
               <p className="text-sm text-slate-700">Sign in with your owner email to access your business dashboard.</p>
               <OwnerDashboardSignInButton returnTo={returnTo} />
             </>
-          ) : null}
+          ) : (
+            <p className="text-sm text-slate-700">Owner sign-in is unavailable until Clerk environment keys are configured.</p>
+          )}
           {isSignedInWithoutOwnerAccess ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               Signed in but no owner workspace is linked yet. Run the owner backfill or contact support.
             </div>
           ) : null}
-          {!canUseClerkSignIn && canUseLegacyAccess ? (
-            <p className="text-sm text-slate-700">
-              Enter the owner email and location slug to open your secure dashboard.
-            </p>
-          ) : null}
-          {!canUseClerkSignIn && canUseLegacyAccess ? <OwnerAccessForm /> : null}
         </Card>
 
         <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">
-            {canUseLegacyAccess ? "Need help finding your slug?" : "Need an account?"}
-          </h2>
-          {canUseLegacyAccess ? (
-            <>
-              <p className="text-sm text-slate-700">
-                Your location slug is the part after <code>/feedback/</code> in your customer feedback link.
-              </p>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                Example: <code>/feedback/demo-coffee-downtown</code> means slug is <code>demo-coffee-downtown</code>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-slate-700">
-              Start a new trial business account, then sign in with that owner email to access your dashboard.
-            </p>
-          )}
+          <h2 className="text-lg font-semibold text-slate-900">Need an account?</h2>
+          <p className="text-sm text-slate-700">
+            Start a new trial business account, then sign in with that owner email to access your dashboard.
+          </p>
           <Link href="/signup" className="text-sm font-medium text-slate-900 underline">
             New business? Start free trial
           </Link>

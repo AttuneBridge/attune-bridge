@@ -1,23 +1,19 @@
-import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { PrintPageButton } from "@/components/ui/print-page-button";
 import { QrCodePreview } from "@/components/ui/qr-code-preview";
 import { getAppUrl } from "@/lib/app-url";
-import { getOwnerSession } from "@/lib/owner-session";
+import { redirectToDashboardAccess } from "@/lib/auth/redirects";
+import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardReviewsQrPage() {
-  const ownerSession = await getOwnerSession();
-
-  if (!ownerSession) {
-    redirect("/dashboard/access");
-  }
+  const workspace = await getOwnerWorkspaceContextOrRedirect();
 
   const location = await prisma.location.findUnique({
-    where: { slug: ownerSession.locationSlug },
+    where: { slug: workspace.locationSlug },
     select: {
       id: true,
       slug: true,
@@ -31,8 +27,8 @@ export default async function DashboardReviewsQrPage() {
     },
   });
 
-  if (!location || location.business.id !== ownerSession.businessId) {
-    redirect("/dashboard/access");
+  if (!location || location.business.id !== workspace.businessId) {
+    redirectToDashboardAccess("/dashboard/reviews/qr");
   }
 
   const publicFeedbackUrl = `${getAppUrl()}/feedback/${location.slug}`;
