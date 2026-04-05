@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { BusinessMembershipRole } from "@prisma/client";
+import { headers } from "next/headers";
 import { DashboardNav } from "@/components/navigation/dashboard-nav";
 import { PublicHeaderNav } from "@/components/navigation/public-header-nav";
+import { DemoModeBanner } from "@/components/ui/demo-mode-banner";
 import { redirectToDashboardAccess } from "@/lib/auth/redirects";
+import { isDemoModeAllowedForHost } from "@/lib/demo/config";
 import { requireDashboardIdentity } from "@/lib/auth/require-dashboard-identity";
 import { getEnabledModulesForBusiness } from "@/lib/module-subscriptions";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +16,9 @@ export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const identity = await requireDashboardIdentity("/dashboard");
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
+  const isDemoMode = isDemoModeAllowedForHost(host);
 
   const businessId = (
     await prisma.businessMembership.findFirst({
@@ -63,6 +69,7 @@ export default async function DashboardLayout({
           <PublicHeaderNav hasDashboardAccess />
         </div>
       </header>
+      {isDemoMode ? <DemoModeBanner /> : null}
       <DashboardNav enabledModules={dashboardNavModules} />
       {children}
     </>

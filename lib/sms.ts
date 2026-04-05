@@ -1,3 +1,5 @@
+import { isDemoModeEnabled } from "@/lib/demo/config";
+
 type SmsResult = {
   sent: boolean;
   skipped: boolean;
@@ -16,6 +18,15 @@ function normalizePhone(phone: string) {
 }
 
 export async function sendSmsNotification(input: SendSmsInput): Promise<SmsResult> {
+  if (isDemoModeEnabled()) {
+    return {
+      sent: false,
+      skipped: true,
+      providerMessageId: null,
+      errorMessage: "Demo mode skips outbound SMS sends.",
+    };
+  }
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromPhone = input.fromPhone ?? process.env.TWILIO_FROM_PHONE;

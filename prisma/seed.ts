@@ -1,5 +1,6 @@
 import {
   AppModule,
+  BusinessMembershipRole,
   FollowUpPreference,
   LoyaltyAudience,
   LoyaltyConversionType,
@@ -15,11 +16,10 @@ import {
   SchedulerRecipientSmsStatus,
   Sentiment,
   SubscriptionStatus,
+  SystemRole,
 } from "@prisma/client";
 
-const prisma = new PrismaClient();
-
-async function main() {
+export async function seedDemoData(prisma: PrismaClient) {
   const now = new Date();
   const trialEndsAt = new Date(now);
   trialEndsAt.setDate(trialEndsAt.getDate() + 30);
@@ -52,6 +52,34 @@ async function main() {
       instantEmailNegative: true,
       smsNegativeEnabled: false,
       alertPhone: "+15550100099",
+    },
+  });
+
+  const ownerUser = await prisma.user.upsert({
+    where: { email: "owner@democoffee.com" },
+    update: {
+      systemRole: SystemRole.USER,
+    },
+    create: {
+      email: "owner@democoffee.com",
+      systemRole: SystemRole.USER,
+    },
+  });
+
+  await prisma.businessMembership.upsert({
+    where: {
+      userId_businessId: {
+        userId: ownerUser.id,
+        businessId: business.id,
+      },
+    },
+    update: {
+      role: BusinessMembershipRole.OWNER,
+    },
+    create: {
+      userId: ownerUser.id,
+      businessId: business.id,
+      role: BusinessMembershipRole.OWNER,
     },
   });
 
@@ -461,11 +489,21 @@ async function main() {
   });
 }
 
-main()
-  .catch((error) => {
+async function main() {
+  const prisma = new PrismaClient();
+
+  try {
+    await seedDemoData(prisma);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+const isDirectSeedRun = process.argv[1]?.endsWith("prisma/seed.ts");
+
+if (isDirectSeedRun) {
+  main().catch((error) => {
     console.error(error);
     process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });
+}

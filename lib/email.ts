@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { isDemoModeEnabled } from "@/lib/demo/config";
 
 type NotificationInput = {
   businessEmail: string;
@@ -53,6 +54,15 @@ function interpolateTemplate(
 export async function sendFeedbackNotification(
   input: NotificationInput,
 ): Promise<NotificationResult> {
+  if (isDemoModeEnabled()) {
+    return {
+      sent: false,
+      skipped: true,
+      providerMessageId: null,
+      errorMessage: "Demo mode skips outbound email sends.",
+    };
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
@@ -108,6 +118,15 @@ export async function sendFeedbackNotification(
 }
 
 export async function sendLoyaltyMessageEmail(input: LoyaltyEmailInput): Promise<NotificationResult> {
+  if (isDemoModeEnabled()) {
+    return {
+      sent: false,
+      skipped: true,
+      providerMessageId: null,
+      errorMessage: "Demo mode skips outbound email sends.",
+    };
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 

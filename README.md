@@ -105,7 +105,10 @@ Copy `.env.example` to `.env.local` and set:
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `MANAGE_TOKEN_SECRET` (required in production for secure owner manage links)
+- `DEMO_SESSION_SECRET` (required in production when demo one-click access is enabled)
 - Optional: `NEXT_PUBLIC_APP_URL`
+- Optional: `NEXT_PUBLIC_DEMO_HOST` (defaults to `demo.attunebridge.com`)
+- Optional: `DEMO_MODE_ENABLED` (`true` on demo deployments to enable demo gate and outbound-send blocking)
 - Optional (loyalty booking fallback): `LOYALTY_DEFAULT_BOOKING_LINK`
 - Required for scheduled loyalty processing: `CRON_SECRET`
 - Optional (SMS alerts): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_PHONE`
@@ -119,8 +122,11 @@ Copy `.env.example` to `.env.local` and set:
 - `RESEND_API_KEY`: Resend dashboard -> API Keys.
 - `RESEND_FROM_EMAIL`: verified sender/domain in Resend (for example `hello@yourdomain.com`).
 - `MANAGE_TOKEN_SECRET`: app secret; generate a random 32+ byte value.
+- `DEMO_SESSION_SECRET`: app secret for signed demo session cookies (32+ bytes recommended).
 - `CRON_SECRET`: shared secret used by cron callers and `/api/cron/loyalty/process`.
 - `NEXT_PUBLIC_APP_URL`: base URL for current environment (`http://localhost:3000`, dev domain, or production domain).
+- `NEXT_PUBLIC_DEMO_HOST`: canonical demo hostname used for demo-route gating.
+- `DEMO_MODE_ENABLED`: enables demo one-click gate + blocks outbound email/SMS sends.
 - `LOYALTY_DEFAULT_BOOKING_LINK`: optional fallback booking URL for loyalty messages.
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_PHONE`: Twilio Console values (only needed if SMS alerts are enabled).
 
@@ -153,8 +159,11 @@ Auth migration commands:
 Loyalty emails are queued and processed by calling:
 
 - `POST /api/cron/loyalty/process`
+- `POST /api/cron/demo/reset`
 
 This endpoint requires `CRON_SECRET` via `Authorization: Bearer <CRON_SECRET>` (or `x-cron-secret`).
+
+`/api/cron/demo/reset` reseeds the canonical demo business and is intended for a daily schedule (configured in `vercel.json` for `05:00 UTC`). It only executes when `DEMO_MODE_ENABLED=true`.
 
 Short-term hosting can use Vercel scheduled jobs. When migrating off Vercel, add an OS cron entry on EC2 to call this endpoint on your desired cadence (for example every 5-15 minutes). Keep the same `CRON_SECRET` protection in place.
 
@@ -210,6 +219,8 @@ pnpm run dev
 Demo route after seeding:
 
 - `/feedback/demo-coffee-downtown`
+- `/demo-access`
+- `/playbook`
 
 ## Git and Deployment Workflow
 

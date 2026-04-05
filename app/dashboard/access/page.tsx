@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { BusinessMembershipRole } from "@prisma/client";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OwnerDashboardSignInButton } from "@/components/auth/owner-dashboard-sign-in-button";
 import { Card } from "@/components/ui/card";
+import { isDemoModeAllowedForHost } from "@/lib/demo/config";
 import { getRequestIdentity } from "@/lib/identity/request-identity";
 import { prisma } from "@/lib/prisma";
 
@@ -34,6 +36,8 @@ function hasClerkConfig() {
 export default async function DashboardAccessPage({ searchParams }: DashboardAccessPageProps) {
   const query = await searchParams;
   const returnTo = sanitizeReturnTo(typeof query.returnTo === "string" ? query.returnTo : undefined);
+  const requestHeaders = await headers();
+  const isDemoMode = isDemoModeAllowedForHost(requestHeaders.get("host"));
 
   const identity = await getRequestIdentity();
   const ownerMembership = identity
@@ -72,6 +76,17 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               Signed in but no owner workspace is linked yet. Run the owner backfill or contact support.
             </div>
+          ) : null}
+          {isDemoMode ? (
+            <form action="/api/demo/session" method="post" className="pt-1">
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <button
+                type="submit"
+                className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
+              >
+                Continue as Demo Owner
+              </button>
+            </form>
           ) : null}
         </Card>
 

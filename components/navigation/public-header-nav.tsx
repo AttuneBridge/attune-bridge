@@ -17,7 +17,9 @@ export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
   const pathname = usePathname();
 
   const isHomeActive = pathname === "/";
-  const isTryDemoActive = pathname === "/feedback/demo-coffee-downtown" || pathname.startsWith("/demo/");
+  const isTryDemoActive =
+    pathname === "/demo-access" || pathname === "/feedback/demo-coffee-downtown" || pathname.startsWith("/demo/");
+  const isPlaybookActive = pathname === "/playbook" || pathname.startsWith("/playbook/");
   const isStartTrialActive = pathname === "/signup" || pathname.startsWith("/signup/");
   const isOwnerAreaActive =
     pathname.startsWith("/manage/") ||
@@ -30,11 +32,18 @@ export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
         Home
       </Link>
       <Link
-        href="/feedback/demo-coffee-downtown"
+        href="/demo-access"
         aria-current={isTryDemoActive ? "page" : undefined}
         className={getLinkClass(isTryDemoActive)}
       >
         Try Demo
+      </Link>
+      <Link
+        href="/playbook"
+        aria-current={isPlaybookActive ? "page" : undefined}
+        className={getLinkClass(isPlaybookActive)}
+      >
+        Playbook
       </Link>
       <Link
         href="/signup"

@@ -1,3 +1,9 @@
 {
-  "ignoreCommand": "bash scripts/vercel-ignore-preview.sh"
+  "ignoreCommand": "bash scripts/vercel-ignore-preview.sh",
+  "crons": [
+    {
+      "path": "/api/cron/demo/reset",
+      "schedule": "0 5 * * *"
+    }
+  ]
 }
