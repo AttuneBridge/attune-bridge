@@ -1,9 +1,7 @@
 import { AppModule, Prisma } from "@prisma/client";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isManageTokenValidForBusiness } from "@/lib/manage-token";
+import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
 import { getModuleSubscriptionForBusiness } from "@/lib/module-subscriptions";
-import { OWNER_SESSION_COOKIE_NAME, isOwnerSessionValidForBusiness } from "@/lib/owner-session";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/scheduler/utils";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
@@ -17,16 +15,10 @@ type CreateContactRequestBody = {
 };
 
 async function hasSchedulerAccess(businessId: string, manageToken?: string) {
-  const cookieStore = await cookies();
-  const ownerSessionToken = cookieStore.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
-  const hasValidOwnerSession = isOwnerSessionValidForBusiness(ownerSessionToken, { businessId });
-  const hasValidManageToken =
-    typeof manageToken === "string" &&
-    manageToken.trim().length > 0 &&
-    isManageTokenValidForBusiness(manageToken.trim(), businessId);
+  const access = await getBusinessApiAccessResult(businessId, manageToken);
 
-  if (!hasValidOwnerSession && !hasValidManageToken) {
-    return { ok: false as const, status: 401, error: "Manage token is invalid or expired." };
+  if (!access.ok) {
+    return { ok: false as const, status: access.status, error: access.error };
   }
 
   const subscription = await getModuleSubscriptionForBusiness(businessId, AppModule.SCHEDULER);

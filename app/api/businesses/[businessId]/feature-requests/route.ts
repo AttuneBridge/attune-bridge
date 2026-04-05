@@ -1,7 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isManageTokenValidForBusiness } from "@/lib/manage-token";
-import { OWNER_SESSION_COOKIE_NAME, isOwnerSessionValidForBusiness } from "@/lib/owner-session";
+import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
@@ -33,14 +31,14 @@ export async function POST(
   const details = typeof body.details === "string" ? body.details.trim() : "";
   const manageToken = typeof body.manageToken === "string" ? body.manageToken.trim() : "";
 
-  if (!ownerEmail || !details) {
+  if (!details) {
     return NextResponse.json(
-      { error: "ownerEmail and details are required." },
+      { error: "details is required." },
       { status: 400 },
     );
   }
 
-  if (!isLikelyEmail(ownerEmail)) {
+  if (ownerEmail && !isLikelyEmail(ownerEmail)) {
     return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
   }
 
@@ -64,29 +62,18 @@ export async function POST(
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
-  const cookieStore = await cookies();
-  const ownerSessionToken = cookieStore.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
-  const hasValidOwnerSession = isOwnerSessionValidForBusiness(ownerSessionToken, {
-    businessId: business.id,
-  });
-  const hasValidManageToken =
-    manageToken.length > 0 && isManageTokenValidForBusiness(manageToken, business.id);
+  const access = await getBusinessApiAccessResult(business.id, manageToken);
 
-  if (!hasValidOwnerSession && !hasValidManageToken) {
-    return NextResponse.json({ error: "Manage token is invalid or expired." }, { status: 401 });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  if (business.email.toLowerCase() !== ownerEmail) {
-    return NextResponse.json(
-      { error: "Owner email does not match this business account." },
-      { status: 403 },
-    );
-  }
+  const requestOwnerEmail = ownerEmail || business.email.toLowerCase();
 
   const featureRequest = await prisma.ownerFeatureRequest.create({
     data: {
       businessId: business.id,
-      ownerEmail,
+      ownerEmail: requestOwnerEmail,
       details,
     },
     select: {

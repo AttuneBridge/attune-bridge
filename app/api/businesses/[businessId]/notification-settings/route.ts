@@ -1,7 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isManageTokenValidForBusiness } from "@/lib/manage-token";
-import { OWNER_SESSION_COOKIE_NAME, isOwnerSessionValidForBusiness } from "@/lib/owner-session";
+import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
 import { prisma } from "@/lib/prisma";
 
 type SettingsRequestBody = {
@@ -35,14 +33,10 @@ export async function GET(
   const { searchParams } = new URL(_request.url);
   const manageToken = searchParams.get("token")?.trim() ?? "";
 
-  const cookieStore = await cookies();
-  const ownerSessionToken = cookieStore.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
-  const hasValidOwnerSession = isOwnerSessionValidForBusiness(ownerSessionToken, { businessId });
-  const hasValidManageToken =
-    manageToken.length > 0 && isManageTokenValidForBusiness(manageToken, businessId);
+  const access = await getBusinessApiAccessResult(businessId, manageToken);
 
-  if (!hasValidOwnerSession && !hasValidManageToken) {
-    return NextResponse.json({ error: "Manage token is invalid or expired." }, { status: 401 });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const business = await prisma.business.findUnique({
@@ -96,14 +90,10 @@ export async function PATCH(
   const quietHoursEnd = toOptionalTime(body.quietHoursEnd);
   const manageToken = typeof body.manageToken === "string" ? body.manageToken.trim() : "";
 
-  const cookieStore = await cookies();
-  const ownerSessionToken = cookieStore.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
-  const hasValidOwnerSession = isOwnerSessionValidForBusiness(ownerSessionToken, { businessId });
-  const hasValidManageToken =
-    manageToken.length > 0 && isManageTokenValidForBusiness(manageToken, businessId);
+  const access = await getBusinessApiAccessResult(businessId, manageToken);
 
-  if (!hasValidOwnerSession && !hasValidManageToken) {
-    return NextResponse.json({ error: "Manage token is invalid or expired." }, { status: 401 });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const alertPhoneInput = typeof body.alertPhone === "string" ? body.alertPhone.trim() : undefined;
