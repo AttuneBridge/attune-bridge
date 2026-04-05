@@ -1,8 +1,6 @@
 import { AppModule } from "@prisma/client";
-import { cookies } from "next/headers";
-import { isManageTokenValidForBusiness } from "@/lib/manage-token";
+import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
 import { getModuleSubscriptionForBusiness } from "@/lib/module-subscriptions";
-import { OWNER_SESSION_COOKIE_NAME, isOwnerSessionValidForBusiness } from "@/lib/owner-session";
 
 type TextBackAccessResult =
   | {
@@ -18,16 +16,10 @@ export async function getTextBackAccessResult(
   businessId: string,
   manageToken?: string,
 ): Promise<TextBackAccessResult> {
-  const cookieStore = await cookies();
-  const ownerSessionToken = cookieStore.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
-  const hasValidOwnerSession = isOwnerSessionValidForBusiness(ownerSessionToken, { businessId });
-  const hasValidManageToken =
-    typeof manageToken === "string" &&
-    manageToken.trim().length > 0 &&
-    isManageTokenValidForBusiness(manageToken.trim(), businessId);
+  const access = await getBusinessApiAccessResult(businessId, manageToken);
 
-  if (!hasValidOwnerSession && !hasValidManageToken) {
-    return { ok: false, status: 401, error: "Manage token is invalid or expired." };
+  if (!access.ok) {
+    return { ok: false, status: access.status, error: access.error };
   }
 
   const subscription = await getModuleSubscriptionForBusiness(businessId, AppModule.MISSED_CALL_TEXTBACK);

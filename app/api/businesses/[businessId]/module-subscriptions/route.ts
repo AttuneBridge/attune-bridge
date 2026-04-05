@@ -1,8 +1,6 @@
 import { AppModule, ModuleSubscriptionStatus } from "@prisma/client";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isManageTokenValidForBusiness } from "@/lib/manage-token";
-import { OWNER_SESSION_COOKIE_NAME, isOwnerSessionValidForBusiness } from "@/lib/owner-session";
+import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
@@ -19,18 +17,12 @@ export async function POST(
 ) {
   const { businessId } = await context.params;
   const body = (await request.json().catch(() => null)) as
-    | { ownerEmail?: unknown; module?: unknown; action?: unknown; manageToken?: unknown }
+    | { module?: unknown; action?: unknown; manageToken?: unknown }
     | null;
 
-  const ownerEmail =
-    body && typeof body.ownerEmail === "string" ? body.ownerEmail.trim().toLowerCase() : "";
   const moduleValue = body && typeof body.module === "string" ? body.module.trim().toUpperCase() : "";
   const action = body && typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
   const manageToken = body && typeof body.manageToken === "string" ? body.manageToken.trim() : "";
-
-  if (!ownerEmail) {
-    return NextResponse.json({ error: "Owner email is required." }, { status: 400 });
-  }
 
   if (action !== "activate" && action !== "deactivate") {
     return NextResponse.json({ error: "action must be activate or deactivate." }, { status: 400 });
@@ -44,7 +36,6 @@ export async function POST(
     where: { id: businessId },
     select: {
       id: true,
-      email: true,
     },
   });
 
@@ -52,17 +43,10 @@ export async function POST(
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
-  const cookieStore = await cookies();
-  const ownerSessionToken = cookieStore.get(OWNER_SESSION_COOKIE_NAME)?.value ?? "";
-  const hasValidOwnerSession = isOwnerSessionValidForBusiness(ownerSessionToken, { businessId: business.id });
-  const hasValidManageToken = manageToken.length > 0 && isManageTokenValidForBusiness(manageToken, business.id);
+  const access = await getBusinessApiAccessResult(business.id, manageToken);
 
-  if (!hasValidOwnerSession && !hasValidManageToken) {
-    return NextResponse.json({ error: "Manage token is invalid or expired." }, { status: 401 });
-  }
-
-  if (business.email.toLowerCase() !== ownerEmail) {
-    return NextResponse.json({ error: "Owner email does not match this business." }, { status: 403 });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
   const now = new Date();
