@@ -25,6 +25,8 @@
     "env:vercel:push-dev": "node scripts/env-sync.mjs push --from development --targets vercel-development",
     "env:vercel:push-prod": "node scripts/env-sync.mjs push --from production-local --targets vercel-production",
     "gh:user:switch": "bash scripts/gh-repo-user-switch.sh",
+    "auth:backfill-owner-users": "tsx scripts/backfill-owner-users.ts",
+    "auth:backfill-owner-users:dry-run": "tsx scripts/backfill-owner-users.ts --dry-run",
     "scheduler:race-check": "tsx scripts/scheduler-claim-race-check.ts",
     "scheduler:expired-check": "tsx scripts/scheduler-expired-claim-check.ts",
     "scheduler:checks": "pnpm run scheduler:race-check && pnpm run scheduler:expired-check"
