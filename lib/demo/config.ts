@@ -20,9 +20,13 @@ export function isDemoModeEnabled() {
 }
 
 export function isDemoModeAllowedForHost(host: string | null | undefined) {
+  if (isDemoModeEnabled()) {
+    return true;
+  }
+
   if (isDemoHost(host)) {
     return true;
   }
 
-  return process.env.NODE_ENV !== "production" && isDemoModeEnabled();
+  return false;
 }
