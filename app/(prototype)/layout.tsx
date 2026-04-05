@@ -19,7 +19,7 @@ export default async function PrototypeLayout({
           <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
             AttuneBridge
           </Link>
-          <PublicHeaderNav hasOwnerSession={Boolean(ownerSession)} />
+          <PublicHeaderNav hasDashboardAccess={Boolean(ownerSession)} hasLegacyOwnerSession={Boolean(ownerSession)} />
         </div>
       </header>
       {ownerSession ? (
