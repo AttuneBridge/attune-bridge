@@ -112,11 +112,35 @@ function formatMessagePreview(message: string | null) {
 
 export function FeedbackInboxList({ entries }: { entries: FeedbackInboxEntry[] }) {
   const [expandedEntryIds, setExpandedEntryIds] = useState<Set<string>>(() => new Set());
-  const allEntryIds = useMemo(() => entries.map((entry) => entry.id), [entries]);
-  const allExpanded = entries.length > 0 && expandedEntryIds.size === entries.length;
+  const [sentimentFilter, setSentimentFilter] = useState<Sentiment | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "ALL">("ALL");
+
+  const filteredEntries = useMemo(() => {
+    return entries.filter((entry) => {
+      const sentimentMatches = sentimentFilter === "ALL" || entry.sentiment === sentimentFilter;
+      const statusMatches = statusFilter === "ALL" || entry.status === statusFilter;
+      return sentimentMatches && statusMatches;
+    });
+  }, [entries, sentimentFilter, statusFilter]);
+
+  const allExpanded = filteredEntries.length > 0 && filteredEntries.every((entry) => expandedEntryIds.has(entry.id));
 
   const handleToggleAll = () => {
-    setExpandedEntryIds(allExpanded ? new Set() : new Set(allEntryIds));
+    setExpandedEntryIds((previous) => {
+      const next = new Set(previous);
+
+      if (allExpanded) {
+        for (const entry of filteredEntries) {
+          next.delete(entry.id);
+        }
+        return next;
+      }
+
+      for (const entry of filteredEntries) {
+        next.add(entry.id);
+      }
+      return next;
+    });
   };
 
   const handleToggleOne = (entryId: string, isOpen: boolean) => {
@@ -135,17 +159,78 @@ export function FeedbackInboxList({ entries }: { entries: FeedbackInboxEntry[] }
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={handleToggleAll}
-          className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-        >
-          {allExpanded ? "Collapse all" : "Expand all"}
-        </button>
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Sentiment</p>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { value: "ALL", label: "All" },
+              { value: "NEGATIVE", label: "Negative" },
+              { value: "NEUTRAL", label: "Neutral" },
+              { value: "POSITIVE", label: "Positive" },
+            ] as const).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSentimentFilter(option.value)}
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                  sentimentFilter === option.value
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Case status</p>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { value: "ALL", label: "All" },
+              { value: "NEW", label: "New" },
+              { value: "IN_PROGRESS", label: "In Progress" },
+              { value: "RESOLVED", label: "Resolved" },
+            ] as const).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setStatusFilter(option.value)}
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                  statusFilter === option.value
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-slate-600">
+            Showing {filteredEntries.length} of {entries.length} cases
+          </p>
+          <button
+            type="button"
+            onClick={handleToggleAll}
+            disabled={filteredEntries.length === 0}
+            className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {allExpanded ? "Collapse all" : "Expand all"}
+          </button>
+        </div>
       </div>
 
-      {entries.map((entry) => {
+      {filteredEntries.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+          <p className="text-sm text-slate-700">No feedback matches the selected filters.</p>
+        </div>
+      ) : (
+        filteredEntries.map((entry) => {
         const hasEmail = Boolean(entry.customerEmail);
         const phoneHref = entry.phone ? toPhoneHref(entry.phone) : null;
         const hasPhone = Boolean(phoneHref);
@@ -201,7 +286,7 @@ export function FeedbackInboxList({ entries }: { entries: FeedbackInboxEntry[] }
         const latestSmsEvent = entry.notificationEvents.find((event) => event.channel === "SMS");
         const isOpen = expandedEntryIds.has(entry.id);
 
-        return (
+          return (
           <details
             key={entry.id}
             open={isOpen}
@@ -317,8 +402,9 @@ export function FeedbackInboxList({ entries }: { entries: FeedbackInboxEntry[] }
               </div>
             </div>
           </details>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   );
 }
