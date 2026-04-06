@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AppModule, ModuleSubscriptionStatus, SubscriptionStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
@@ -179,41 +178,6 @@ export default async function DashboardHomePage() {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/dashboard/reviews"
-              className="inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Open reviews
-            </Link>
-            <Link
-              href="/dashboard/scheduler"
-              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
-            >
-              Open scheduler
-            </Link>
-            <Link
-              href="/dashboard/loyalty"
-              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
-            >
-              Open loyalty builder
-            </Link>
-            <Link
-              href="/dashboard/reviews"
-              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
-            >
-              Open reviews workspace
-            </Link>
-            <Link
-              href="/dashboard/textback"
-              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
-            >
-              Open missed call text back
-            </Link>
-          </div>
-        </Card>
-
-        <Card className="space-y-3">
           <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <h2 className="text-lg font-semibold text-slate-900">Renewal details</h2>
             <p className="text-sm text-slate-700">
@@ -228,7 +192,9 @@ export default async function DashboardHomePage() {
               isMonthlySubscriptionActive={isMonthlySubscriptionActive}
             />
           </div>
+        </Card>
 
+        <Card className="space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Module subscriptions</h2>
           <p className="text-sm text-slate-700">
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
