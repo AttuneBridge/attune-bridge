@@ -109,6 +109,42 @@ async function getDemoBusinessId() {
   return business.id;
 }
 
+function getDatabaseRuntimeHints() {
+  const raw = process.env.DATABASE_URL;
+
+  if (!raw || !raw.trim()) {
+    return {
+      hasDatabaseUrl: false,
+      databaseHost: null,
+      databasePort: null,
+      hasPgbouncerParam: false,
+      hasConnectionLimitParam: false,
+    };
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const hasPgbouncerParam = parsed.searchParams.get("pgbouncer") === "true";
+    const hasConnectionLimitParam = parsed.searchParams.has("connection_limit");
+
+    return {
+      hasDatabaseUrl: true,
+      databaseHost: parsed.hostname,
+      databasePort: parsed.port || null,
+      hasPgbouncerParam,
+      hasConnectionLimitParam,
+    };
+  } catch {
+    return {
+      hasDatabaseUrl: true,
+      databaseHost: null,
+      databasePort: null,
+      hasPgbouncerParam: false,
+      hasConnectionLimitParam: false,
+    };
+  }
+}
+
 export async function GET() {
   return NextResponse.json(
     { error: "Method not allowed. Submit the demo access form from /demo-access." },
@@ -129,9 +165,19 @@ export async function POST(request: Request) {
 
   try {
     demoBusinessId = await getDemoBusinessId();
-  } catch {
+  } catch (error) {
+    const runtimeHints = getDatabaseRuntimeHints();
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
     return NextResponse.json(
-      { error: "Could not load demo business data.", code: "DEMO_DB_LOOKUP_FAILED" },
+      {
+        error: "Could not load demo business data.",
+        code: "DEMO_DB_LOOKUP_FAILED",
+        details: {
+          message: errorMessage,
+          ...runtimeHints,
+        },
+      },
       { status: 500 },
     );
   }

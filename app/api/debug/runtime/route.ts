@@ -18,6 +18,8 @@ function readUrlParts(rawValue: string | undefined) {
       host: parsed.hostname,
       port: parsed.port || null,
       protocol: parsed.protocol,
+      hasPgbouncerParam: parsed.searchParams.get("pgbouncer") === "true",
+      hasConnectionLimitParam: parsed.searchParams.has("connection_limit"),
       parseError: null,
     };
   } catch {
@@ -26,6 +28,8 @@ function readUrlParts(rawValue: string | undefined) {
       host: null,
       port: null,
       protocol: null,
+      hasPgbouncerParam: false,
+      hasConnectionLimitParam: false,
       parseError: "INVALID_URL",
     };
   }
