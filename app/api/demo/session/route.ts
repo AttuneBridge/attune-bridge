@@ -117,30 +117,40 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const host = request.headers.get("host");
+
+  if (!isDemoModeAllowedForHost(host)) {
+    return NextResponse.json({ error: "Demo access is unavailable on this host." }, { status: 403 });
+  }
+
+  const returnTo = await readReturnToFromRequest(request);
+
+  let demoBusinessId: string | null = null;
+
   try {
-    const host = request.headers.get("host");
+    demoBusinessId = await getDemoBusinessId();
+  } catch {
+    return NextResponse.json(
+      { error: "Could not load demo business data.", code: "DEMO_DB_LOOKUP_FAILED" },
+      { status: 500 },
+    );
+  }
 
-    if (!isDemoModeAllowedForHost(host)) {
-      return NextResponse.json({ error: "Demo access is unavailable on this host." }, { status: 403 });
-    }
+  if (!demoBusinessId) {
+    return NextResponse.json(
+      { error: "Demo business is not available yet. Run prisma seed." },
+      { status: 503 },
+    );
+  }
 
-    const returnTo = await readReturnToFromRequest(request);
-    const demoBusinessId = await getDemoBusinessId();
+  const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
+  const token = createDemoSessionToken({ businessId: demoBusinessId, expiresAt });
 
-    if (!demoBusinessId) {
-      return NextResponse.json(
-        { error: "Demo business is not available yet. Run prisma seed." },
-        { status: 503 },
-      );
-    }
+  if (!token) {
+    return NextResponse.json({ error: "Demo session secret is missing.", code: "DEMO_SECRET_MISSING" }, { status: 503 });
+  }
 
-    const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
-    const token = createDemoSessionToken({ businessId: demoBusinessId, expiresAt });
-
-    if (!token) {
-      return NextResponse.json({ error: "Demo session secret is missing." }, { status: 503 });
-    }
-
+  try {
     const response = NextResponse.redirect(new URL(returnTo, request.url));
     response.cookies.set({
       name: DEMO_SESSION_COOKIE_NAME,
@@ -154,6 +164,9 @@ export async function POST(request: Request) {
 
     return response;
   } catch {
-    return NextResponse.json({ error: "Could not create demo session." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not create demo session response.", code: "DEMO_SESSION_RESPONSE_FAILED" },
+      { status: 500 },
+    );
   }
 }
