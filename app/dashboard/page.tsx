@@ -1,6 +1,7 @@
 import { AppModule, ModuleSubscriptionStatus, SubscriptionStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
+import { OwnerFeatureRequestForm } from "@/components/forms/owner-feature-request-form";
 import { RenewSubscriptionForm } from "@/components/forms/renew-subscription-form";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
@@ -54,6 +55,17 @@ export default async function DashboardHomePage() {
       paidThrough: true,
       autoRenewEnabled: true,
       deactivatedAt: true,
+      email: true,
+      featureRequests: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          ownerEmail: true,
+          details: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -200,6 +212,33 @@ export default async function DashboardHomePage() {
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
           </p>
           <ModuleSubscriptionForm businessId={workspace.businessId} moduleSubscriptions={moduleSubscriptionsForForm} />
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <h3 className="text-sm font-semibold text-slate-900">Owner feature request</h3>
+            <p className="mb-2 text-sm text-slate-700">
+              Share requests for module improvements or new tools you want to see in AttuneBridge.
+            </p>
+            <OwnerFeatureRequestForm businessId={workspace.businessId} />
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Recent requests</p>
+            {business.featureRequests.length === 0 ? (
+              <p className="text-xs text-slate-600">No requests submitted yet.</p>
+            ) : (
+              <div className="space-y-2 text-xs text-slate-700">
+                {business.featureRequests.map((request) => (
+                  <div key={request.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                    <p className="font-medium text-slate-800">{new Date(request.createdAt).toLocaleString()}</p>
+                    <p className="mt-1">{request.details}</p>
+                    <p className="mt-1 text-slate-500">
+                      Submitted by {request.ownerEmail === business.email ? "owner" : request.ownerEmail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
       </section>
     </main>
