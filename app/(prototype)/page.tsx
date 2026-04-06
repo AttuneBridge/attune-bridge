@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 
 export default function HomePage() {
+  const guidedDemoHref = "https://demo.attunebridge.com/demo-access";
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <section className="grid gap-6 md:grid-cols-[1.15fr_0.85fr]">
@@ -19,7 +21,9 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link
-              href="/demo-access"
+              href={guidedDemoHref}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
             >
               View Guided Demo
