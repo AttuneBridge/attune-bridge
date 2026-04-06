@@ -74,9 +74,6 @@ export default async function DashboardFeedbackInboxPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Reviews Workspace</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Recent Private Feedback</h1>
           <p className="text-sm text-slate-600">Customer feedback inbox for {workspace.businessName}.</p>
-          <Link href="/dashboard" className="text-sm font-medium text-slate-900 underline">
-            Back to dashboard home
-          </Link>
         </div>
 
         <div className="flex flex-wrap gap-3">
