@@ -7,6 +7,7 @@ export const validationEvent = {
   qrViewed: "qr_viewed",
   manageViewed: "manage_viewed",
   feedbackSubmitted: "feedback_submitted",
+  reviewRedirectOpened: "review_redirect_opened",
   subscriptionStarted: "subscription_started",
   subscriptionCanceled: "subscription_canceled",
   moduleSubscriptionUpdated: "module_subscription_updated",

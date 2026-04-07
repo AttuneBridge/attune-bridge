@@ -41,7 +41,7 @@ export function FeedbackExperience({
             <div className="flex flex-wrap gap-2">
               {googleReviewLink ? (
                 <Link
-                  href={googleReviewLink}
+                  href={`/api/reviews/redirect?slug=${encodeURIComponent(slug)}&channel=google`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
@@ -51,7 +51,7 @@ export function FeedbackExperience({
               ) : null}
               {yelpReviewLink ? (
                 <Link
-                  href={yelpReviewLink}
+                  href={`/api/reviews/redirect?slug=${encodeURIComponent(slug)}&channel=yelp`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex rounded-lg border border-emerald-700 bg-white px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-100"

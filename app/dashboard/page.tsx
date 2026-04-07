@@ -1,4 +1,12 @@
-import { AppModule, ModuleSubscriptionStatus, SubscriptionStatus } from "@prisma/client";
+import {
+  AppModule,
+  FeedbackStatus,
+  LoyaltyConversionType,
+  ModuleSubscriptionStatus,
+  RecoveryOutcome,
+  Sentiment,
+  SubscriptionStatus,
+} from "@prisma/client";
 import { redirect } from "next/navigation";
 import { OwnerFeatureRequestPanel } from "@/components/dashboard/owner-feature-request-panel";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
@@ -17,6 +25,21 @@ const OWNER_MANAGED_MODULES: Array<Exclude<AppModule, "FEEDBACK">> = [
   AppModule.MISSED_CALL_TEXTBACK,
 ];
 
+type RoiWindowMetrics = {
+  feedbackCollected: number;
+  privateCases: number;
+  resolvedPrivateCases: number;
+  recoveredCustomers: number;
+  unresolvedPrivateCases: number;
+  schedulerClaims: number;
+  missedCallReplies: number;
+  reviewRedirects: number;
+  loyaltyBookingConversions: number;
+  loyaltyReviewConversions: number;
+  savedRatePercent: number;
+  conversionProxyTotal: number;
+};
+
 function formatDate(date: Date | null) {
   if (!date) {
     return "Not set";
@@ -28,6 +51,14 @@ function formatDate(date: Date | null) {
     year: "numeric",
   }).format(date);
 }
+
+type RoiDelta = {
+  feedbackCollected: number;
+  recoveredCustomers: number;
+  savedRatePercent: number;
+  reviewRedirects: number;
+  conversionProxyTotal: number;
+};
 
 function getStatusLabel(status: SubscriptionStatus) {
   switch (status) {
@@ -42,6 +73,146 @@ function getStatusLabel(status: SubscriptionStatus) {
     default:
       return "Unknown";
   }
+}
+
+function getPercent(numerator: number, denominator: number) {
+  if (denominator <= 0) {
+    return 0;
+  }
+
+  return Math.round((numerator / denominator) * 100);
+}
+
+function buildDateRangeFilter(start: Date, end: Date) {
+  return {
+    gte: start,
+    lt: end,
+  };
+}
+
+function getRoiDelta(current: RoiWindowMetrics, previous: RoiWindowMetrics): RoiDelta {
+  return {
+    feedbackCollected: current.feedbackCollected - previous.feedbackCollected,
+    recoveredCustomers: current.recoveredCustomers - previous.recoveredCustomers,
+    savedRatePercent: current.savedRatePercent - previous.savedRatePercent,
+    reviewRedirects: current.reviewRedirects - previous.reviewRedirects,
+    conversionProxyTotal: current.conversionProxyTotal - previous.conversionProxyTotal,
+  };
+}
+
+function formatDeltaLabel(value: number, suffix = "") {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value}${suffix}`;
+}
+
+function getDeltaClass(value: number) {
+  if (value > 0) {
+    return "text-emerald-700";
+  }
+
+  if (value < 0) {
+    return "text-rose-700";
+  }
+
+  return "text-slate-500";
+}
+
+async function getRoiWindowMetrics(businessId: string, start: Date, end: Date): Promise<RoiWindowMetrics> {
+  const dateRange = buildDateRangeFilter(start, end);
+  const [
+    feedbackCollected,
+    privateCases,
+    resolvedPrivateCases,
+    recoveredCustomers,
+    schedulerClaims,
+    missedCallReplies,
+    reviewRedirects,
+    loyaltyBookingConversions,
+    loyaltyReviewConversions,
+  ] = await prisma.$transaction([
+    prisma.feedback.count({
+      where: {
+        location: { businessId },
+        createdAt: dateRange,
+      },
+    }),
+    prisma.feedback.count({
+      where: {
+        location: { businessId },
+        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+        createdAt: dateRange,
+      },
+    }),
+    prisma.feedback.count({
+      where: {
+        location: { businessId },
+        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+        status: FeedbackStatus.RESOLVED,
+        resolvedAt: dateRange,
+      },
+    }),
+    prisma.feedback.count({
+      where: {
+        location: { businessId },
+        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+        recoveryOutcome: RecoveryOutcome.SAVED,
+        resolvedAt: dateRange,
+      },
+    }),
+    prisma.schedulerOffer.count({
+      where: {
+        businessId,
+        claimedAt: dateRange,
+      },
+    }),
+    prisma.missedCallEvent.count({
+      where: {
+        businessId,
+        replyForwardedAt: dateRange,
+      },
+    }),
+    prisma.validationEvent.count({
+      where: {
+        businessId,
+        event: "review_redirect_opened",
+        createdAt: dateRange,
+      },
+    }),
+    prisma.loyaltyConversion.count({
+      where: {
+        businessId,
+        type: LoyaltyConversionType.BOOKING,
+        convertedAt: dateRange,
+      },
+    }),
+    prisma.loyaltyConversion.count({
+      where: {
+        businessId,
+        type: LoyaltyConversionType.REVIEW,
+        convertedAt: dateRange,
+      },
+    }),
+  ]);
+
+  return {
+    feedbackCollected,
+    privateCases,
+    resolvedPrivateCases,
+    recoveredCustomers,
+    unresolvedPrivateCases: Math.max(privateCases - resolvedPrivateCases, 0),
+    schedulerClaims,
+    missedCallReplies,
+    reviewRedirects,
+    loyaltyBookingConversions,
+    loyaltyReviewConversions,
+    savedRatePercent: getPercent(recoveredCustomers, resolvedPrivateCases),
+    conversionProxyTotal:
+      recoveredCustomers +
+      schedulerClaims +
+      missedCallReplies +
+      loyaltyBookingConversions +
+      loyaltyReviewConversions,
+  };
 }
 
 export default async function DashboardHomePage() {
@@ -153,6 +324,24 @@ export default async function DashboardHomePage() {
   const daysRemaining = dayDelta === null ? null : Math.max(dayDelta, 0);
   const daysSinceExpiry = dayDelta === null ? null : Math.abs(Math.min(dayDelta, 0));
 
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const period7Start = new Date(now - 7 * dayMs);
+  const period30Start = new Date(now - 30 * dayMs);
+  const previous7Start = new Date(now - 14 * dayMs);
+  const previous30Start = new Date(now - 60 * dayMs);
+  const nowDate = new Date(now);
+
+  const [roi7d, roi30d, previousRoi7d, previousRoi30d] = await Promise.all([
+    getRoiWindowMetrics(workspace.businessId, period7Start, nowDate),
+    getRoiWindowMetrics(workspace.businessId, period30Start, nowDate),
+    getRoiWindowMetrics(workspace.businessId, previous7Start, period7Start),
+    getRoiWindowMetrics(workspace.businessId, previous30Start, period30Start),
+  ]);
+
+  const roi7dDelta = getRoiDelta(roi7d, previousRoi7d);
+  const roi30dDelta = getRoiDelta(roi30d, previousRoi30d);
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-stretch">
@@ -231,6 +420,105 @@ export default async function DashboardHomePage() {
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
           </p>
           <ModuleSubscriptionForm businessId={workspace.businessId} moduleSubscriptions={moduleSubscriptionsForForm} />
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">ROI Dashboard v1</p>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Recovery and conversion signals</h2>
+            <p className="text-sm text-slate-700">
+              Early ROI view across Reviews, Scheduler, Loyalty, and Missed Call Text Back activity.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              {
+                label: "Last 7 days",
+                previousLabel: "vs prior 7 days",
+                metrics: roi7d,
+                delta: roi7dDelta,
+              },
+              {
+                label: "Last 30 days",
+                previousLabel: "vs prior 30 days",
+                metrics: roi30d,
+                delta: roi30dDelta,
+              },
+            ].map((window) => (
+              <div key={window.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">{window.label}</p>
+                <p className="text-xs text-slate-500">{window.previousLabel}</p>
+                <div className="mt-2 grid gap-2 text-sm text-slate-700">
+                  <p>
+                    <span className="font-medium text-slate-900">Feedback captured:</span> {window.metrics.feedbackCollected}
+                    <span className={`ml-2 text-xs ${getDeltaClass(window.delta.feedbackCollected)}`}>
+                      ({formatDeltaLabel(window.delta.feedbackCollected)})
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Private cases:</span> {window.metrics.privateCases}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Resolved private cases:</span> {window.metrics.resolvedPrivateCases}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Recovered customers (Saved):</span>{" "}
+                    {window.metrics.recoveredCustomers}
+                    <span className={`ml-2 text-xs ${getDeltaClass(window.delta.recoveredCustomers)}`}>
+                      ({formatDeltaLabel(window.delta.recoveredCustomers)})
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Saved rate:</span> {window.metrics.savedRatePercent}%
+                    <span className={`ml-2 text-xs ${getDeltaClass(window.delta.savedRatePercent)}`}>
+                      ({formatDeltaLabel(window.delta.savedRatePercent, "pp")})
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Open private cases:</span>{" "}
+                    {window.metrics.unresolvedPrivateCases}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Scheduler claims:</span> {window.metrics.schedulerClaims}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Missed-call replies recovered:</span>{" "}
+                    {window.metrics.missedCallReplies}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Review redirects opened:</span>{" "}
+                    {window.metrics.reviewRedirects}
+                    <span className={`ml-2 text-xs ${getDeltaClass(window.delta.reviewRedirects)}`}>
+                      ({formatDeltaLabel(window.delta.reviewRedirects)})
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Loyalty booking conversions:</span>{" "}
+                    {window.metrics.loyaltyBookingConversions}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Loyalty review conversions:</span>{" "}
+                    {window.metrics.loyaltyReviewConversions}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Conversion proxy total:</span>{" "}
+                    {window.metrics.conversionProxyTotal}
+                    <span className={`ml-2 text-xs ${getDeltaClass(window.delta.conversionProxyTotal)}`}>
+                      ({formatDeltaLabel(window.delta.conversionProxyTotal)})
+                    </span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Conversion proxy = saved recoveries + scheduler claims + missed-call replies + loyalty booking conversions + loyalty review conversions.
+            Review redirects are tracked explicitly from customer feedback flow.
+          </p>
         </Card>
       </section>
 
