@@ -1,7 +1,7 @@
 import { AppModule, ModuleSubscriptionStatus, SubscriptionStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { OwnerFeatureRequestPanel } from "@/components/dashboard/owner-feature-request-panel";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
-import { OwnerFeatureRequestForm } from "@/components/forms/owner-feature-request-form";
 import { RenewSubscriptionForm } from "@/components/forms/renew-subscription-form";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
@@ -63,6 +63,7 @@ export default async function DashboardHomePage() {
           id: true,
           ownerEmail: true,
           details: true,
+          module: true,
           createdAt: true,
         },
       },
@@ -135,9 +136,9 @@ export default async function DashboardHomePage() {
   const daysSinceExpiry = dayDelta === null ? null : Math.abs(Math.min(dayDelta, 0));
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
-      <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-start">
-        <Card className="space-y-4">
+    <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
+      <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-stretch">
+        <Card className="flex h-full flex-col space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Dashboard Home</p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Welcome back, {workspace.businessName}</h1>
           <p className="text-sm text-slate-700">
@@ -206,41 +207,26 @@ export default async function DashboardHomePage() {
           </div>
         </Card>
 
-        <Card className="space-y-3">
+        <Card className="flex h-full flex-col space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Module subscriptions</h2>
           <p className="text-sm text-slate-700">
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
           </p>
           <ModuleSubscriptionForm businessId={workspace.businessId} moduleSubscriptions={moduleSubscriptionsForForm} />
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <h3 className="text-sm font-semibold text-slate-900">Owner feature request</h3>
-            <p className="mb-2 text-sm text-slate-700">
-              Share requests for module improvements or new tools you want to see in AttuneBridge.
-            </p>
-            <OwnerFeatureRequestForm businessId={workspace.businessId} />
-          </div>
-
-          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Recent requests</p>
-            {business.featureRequests.length === 0 ? (
-              <p className="text-xs text-slate-600">No requests submitted yet.</p>
-            ) : (
-              <div className="space-y-2 text-xs text-slate-700">
-                {business.featureRequests.map((request) => (
-                  <div key={request.id} className="rounded-lg border border-slate-200 bg-white p-2.5">
-                    <p className="font-medium text-slate-800">{new Date(request.createdAt).toLocaleString()}</p>
-                    <p className="mt-1">{request.details}</p>
-                    <p className="mt-1 text-slate-500">
-                      Submitted by {request.ownerEmail === business.email ? "owner" : request.ownerEmail}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </Card>
       </section>
+
+      <OwnerFeatureRequestPanel
+        businessId={workspace.businessId}
+        businessEmail={business.email}
+        requests={business.featureRequests.map((request) => ({
+          id: request.id,
+          ownerEmail: request.ownerEmail,
+          details: request.details,
+          module: request.module,
+          createdAt: request.createdAt.toISOString(),
+        }))}
+      />
     </main>
   );
 }

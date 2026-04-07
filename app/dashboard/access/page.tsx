@@ -59,7 +59,7 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
   const isSignedInWithoutOwnerAccess = Boolean(identity && !ownerMembership);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
+    <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-start">
         <Card className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Dashboard Access</p>

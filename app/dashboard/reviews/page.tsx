@@ -10,7 +10,7 @@ export default async function DashboardReviewsPage() {
 
   if (!reviewsSubscription.isEnabled) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
+      <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
         <Card className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Reviews Module</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Reviews is not active yet</h1>
