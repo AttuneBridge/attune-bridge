@@ -1,7 +1,104 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-app-bg: var(--color-bg);
+  --color-app-surface: var(--color-surface);
+  --color-app-surface-muted: var(--color-surface-muted);
+  --color-app-text: var(--color-text);
+  --color-app-muted: var(--color-muted);
+
+  --color-module-reviews-solid: var(--module-reviews-solid);
+  --color-module-reviews-soft: var(--module-reviews-soft);
+  --color-module-reviews-border: var(--module-reviews-border);
+
+  --color-module-textback-solid: var(--module-textback-solid);
+  --color-module-textback-soft: var(--module-textback-soft);
+  --color-module-textback-border: var(--module-textback-border);
+
+  --color-module-scheduler-solid: var(--module-scheduler-solid);
+  --color-module-scheduler-soft: var(--module-scheduler-soft);
+  --color-module-scheduler-border: var(--module-scheduler-border);
+
+  --color-module-loyalty-solid: var(--module-loyalty-solid);
+  --color-module-loyalty-soft: var(--module-loyalty-soft);
+  --color-module-loyalty-border: var(--module-loyalty-border);
+}
+
+:root,
+.theme-fullheart-soft {
+  --color-bg: #f8f3e7;
+  --color-surface: #fffaf0;
+  --color-surface-muted: #f2e8d6;
+  --color-text: #36413e;
+  --color-muted: #5f6c68;
+
+  --module-reviews-solid: #c4603c;
+  --module-reviews-soft: #f3e3d3;
+  --module-reviews-border: #debaa5;
+
+  --module-textback-solid: #3d6b64;
+  --module-textback-soft: #eaf3f1;
+  --module-textback-border: #b7cfc9;
+
+  --module-scheduler-solid: #d8a13b;
+  --module-scheduler-soft: #faf1de;
+  --module-scheduler-border: #e6cb91;
+
+  --module-loyalty-solid: #a9787e;
+  --module-loyalty-soft: #f6eef0;
+  --module-loyalty-border: #d8c0c5;
+}
+
+.theme-saas-cool {
+  --color-bg: #f7f9fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f7;
+  --color-text: #1f2937;
+  --color-muted: #4b5563;
+
+  --module-reviews-solid: #b4534d;
+  --module-reviews-soft: #f9eceb;
+  --module-reviews-border: #e3b8b4;
+
+  --module-textback-solid: #2f6b75;
+  --module-textback-soft: #e8f2f4;
+  --module-textback-border: #accad0;
+
+  --module-scheduler-solid: #b4892e;
+  --module-scheduler-soft: #f8f0dd;
+  --module-scheduler-border: #dbc490;
+
+  --module-loyalty-solid: #4f7a5a;
+  --module-loyalty-soft: #ebf3ec;
+  --module-loyalty-border: #b7cebb;
+}
+
+.theme-muted-neutral {
+  --color-bg: #fafaf8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f1ec;
+  --color-text: #2b2f33;
+  --color-muted: #5c6168;
+
+  --module-reviews-solid: #a66252;
+  --module-reviews-soft: #f4ebe8;
+  --module-reviews-border: #d7b5ad;
+
+  --module-textback-solid: #4b6e68;
+  --module-textback-soft: #ebf1f0;
+  --module-textback-border: #bdd0cc;
+
+  --module-scheduler-solid: #a98a43;
+  --module-scheduler-soft: #f5f1e4;
+  --module-scheduler-border: #d7c7a0;
+
+  --module-loyalty-solid: #7c6a83;
+  --module-loyalty-soft: #f1edf3;
+  --module-loyalty-border: #cbc1d0;
+}
+
 body {
-  background: #f8fafc;
-  color: #0f172a;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }

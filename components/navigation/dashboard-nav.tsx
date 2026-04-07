@@ -23,21 +23,51 @@ const MODULE_PATHS: Record<DashboardModule, string> = {
   MISSED_CALL_TEXTBACK: "/dashboard/textback",
 };
 
+function getModuleActiveClass(module: DashboardModule) {
+  switch (module) {
+    case "REVIEWS":
+      return "border-module-reviews-border bg-module-reviews-soft text-module-reviews-solid";
+    case "SCHEDULER":
+      return "border-module-scheduler-border bg-module-scheduler-soft text-module-scheduler-solid";
+    case "LOYALTY":
+      return "border-module-loyalty-border bg-module-loyalty-soft text-module-loyalty-solid";
+    case "MISSED_CALL_TEXTBACK":
+      return "border-module-textback-border bg-module-textback-soft text-module-textback-solid";
+    default:
+      return "border-app-surface-muted bg-app-surface text-app-text";
+  }
+}
+
+function getModuleDotClass(module: DashboardModule) {
+  switch (module) {
+    case "REVIEWS":
+      return "bg-module-reviews-solid";
+    case "SCHEDULER":
+      return "bg-module-scheduler-solid";
+    case "LOYALTY":
+      return "bg-module-loyalty-solid";
+    case "MISSED_CALL_TEXTBACK":
+      return "bg-module-textback-solid";
+    default:
+      return "bg-app-muted";
+  }
+}
+
 export function DashboardNav({ enabledModules }: DashboardNavProps) {
   const pathname = usePathname();
 
   return (
-    <div className="border-b border-slate-200 bg-slate-100/80">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-2.5 text-sm text-slate-700">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Owner Dashboard</p>
+    <div className="border-b border-app-surface-muted bg-app-surface-muted">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-2.5 text-sm text-app-muted">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-app-muted">Owner Dashboard</p>
         <nav className="flex items-center gap-3">
           <Link
             href="/dashboard"
             aria-current={pathname === "/dashboard" ? "page" : undefined}
             className={
               pathname === "/dashboard"
-                ? "rounded-full border border-slate-300 bg-white px-2.5 py-1 text-slate-900"
-                : "hover:text-slate-900"
+                ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
+                : "text-app-muted hover:text-app-text"
             }
           >
             Dashboard
@@ -54,10 +84,11 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
                 aria-current={isActive ? "page" : undefined}
                 className={
                   isActive
-                    ? "rounded-full border border-slate-300 bg-white px-2.5 py-1 text-slate-900"
-                    : "hover:text-slate-900"
+                    ? `inline-flex items-center rounded-full border px-2.5 py-1 ${getModuleActiveClass(module)}`
+                    : "inline-flex items-center text-app-muted hover:text-app-text"
                 }
               >
+                <span className={`mr-1.5 inline-block size-2 rounded-full ${getModuleDotClass(module)}`} aria-hidden />
                 {MODULE_LABELS[module]}
               </Link>
             );
