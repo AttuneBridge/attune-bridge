@@ -46,7 +46,10 @@ export default async function DashboardFeedbackInboxPage() {
     id: entry.id,
     sentiment: entry.sentiment,
     status: entry.status,
+    recoveryOutcome: entry.recoveryOutcome,
     createdAt: entry.createdAt.toISOString(),
+    resolvedAt: entry.resolvedAt ? entry.resolvedAt.toISOString() : null,
+    nextFollowUpAt: entry.nextFollowUpAt ? entry.nextFollowUpAt.toISOString() : null,
     message: entry.message,
     wantsFollowUp: entry.wantsFollowUp,
     followUpPreference: entry.followUpPreference,
@@ -102,7 +105,10 @@ export default async function DashboardFeedbackInboxPage() {
             </p>
           </div>
         ) : (
-          <FeedbackInboxList entries={serializedEntries} />
+          <FeedbackInboxList
+            entries={serializedEntries}
+            exportHref={`/api/businesses/${workspace.businessId}/reviews/sla-export?days=7`}
+          />
         )}
       </Card>
     </main>

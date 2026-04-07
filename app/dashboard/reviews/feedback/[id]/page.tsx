@@ -4,6 +4,7 @@ import {
   FollowUpPreference,
   NotificationChannel,
   NotificationStatus,
+  RecoveryOutcome,
   Sentiment,
 } from "@prisma/client";
 import { FeedbackStatusControls } from "@/components/forms/feedback-status-controls";
@@ -27,12 +28,22 @@ const statusStyles: Record<FeedbackStatus, string> = {
   RESOLVED: "bg-slate-200 text-slate-700 border-slate-300",
 };
 
+const outcomeStyles: Record<RecoveryOutcome, string> = {
+  SAVED: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  UNSAVED: "bg-amber-100 text-amber-800 border-amber-200",
+  ESCALATED: "bg-rose-100 text-rose-800 border-rose-200",
+};
+
 function formatSentiment(sentiment: Sentiment) {
   return sentiment.charAt(0) + sentiment.slice(1).toLowerCase();
 }
 
 function formatStatus(status: FeedbackStatus) {
   return status.replace("_", " ").toLowerCase().replace(/(^\w|\s\w)/g, (match: string) => match.toUpperCase());
+}
+
+function formatOutcome(outcome: RecoveryOutcome) {
+  return outcome.charAt(0) + outcome.slice(1).toLowerCase();
 }
 
 function formatFollowUpPreference(preference: FollowUpPreference | null) {
@@ -150,6 +161,13 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
               >
                 {formatStatus(feedback.status)}
               </span>
+              {feedback.recoveryOutcome ? (
+                <span
+                  className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${outcomeStyles[feedback.recoveryOutcome]}`}
+                >
+                  {formatOutcome(feedback.recoveryOutcome)}
+                </span>
+              ) : null}
               <p className="text-xs text-slate-500">Received {new Date(feedback.createdAt).toLocaleString()}</p>
             </div>
 
@@ -165,7 +183,12 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
 
           <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Case Status</p>
-            <FeedbackStatusControls feedbackId={feedback.id} currentStatus={feedback.status} />
+            <FeedbackStatusControls
+              feedbackId={feedback.id}
+              currentStatus={feedback.status}
+              currentOutcome={feedback.recoveryOutcome}
+              nextFollowUpAtIso={feedback.nextFollowUpAt ? feedback.nextFollowUpAt.toISOString() : null}
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

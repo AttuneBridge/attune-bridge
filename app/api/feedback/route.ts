@@ -117,10 +117,12 @@ export async function GET(request: Request) {
       id: entry.id,
       sentiment: entry.sentiment,
       status: entry.status,
+      recoveryOutcome: entry.recoveryOutcome,
       message: entry.message,
       createdAt: entry.createdAt,
       firstRespondedAt: entry.firstRespondedAt,
       resolvedAt: entry.resolvedAt,
+      nextFollowUpAt: entry.nextFollowUpAt,
       location: {
         id: entry.location.id,
         name: entry.location.name,

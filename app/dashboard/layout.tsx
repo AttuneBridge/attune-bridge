@@ -61,9 +61,9 @@ export default async function DashboardLayout({
 
   return (
     <>
-      <header className="border-b border-slate-200 bg-white/95">
+      <header className="border-b border-app-surface-muted bg-app-surface">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3">
-          <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
+          <Link href="/" className="text-sm font-semibold tracking-tight text-app-text">
             AttuneBridge
           </Link>
           <PublicHeaderNav hasDashboardAccess />

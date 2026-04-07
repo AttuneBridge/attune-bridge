@@ -193,9 +193,11 @@ model Feedback {
   customerEmail      String?
   customerName       String?
   status             FeedbackStatus      @default(NEW)
+  recoveryOutcome    RecoveryOutcome?
   firstViewedAt      DateTime?
   firstRespondedAt   DateTime?
   resolvedAt         DateTime?
+  nextFollowUpAt     DateTime?
   internalNotes      String?
   location           Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
   notificationEvents NotificationEvent[]
@@ -204,6 +206,7 @@ model Feedback {
 
   @@index([locationId])
   @@index([createdAt])
+  @@index([status, recoveryOutcome, nextFollowUpAt])
 }
 
 model NotificationEvent {
@@ -415,6 +418,12 @@ enum FeedbackStatus {
   NEW
   IN_PROGRESS
   RESOLVED
+}
+
+enum RecoveryOutcome {
+  SAVED
+  UNSAVED
+  ESCALATED
 }
 
 enum NotificationChannel {
