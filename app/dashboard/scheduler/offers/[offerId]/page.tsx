@@ -69,7 +69,7 @@ export default async function SchedulerOfferDetailsPage({ params }: SchedulerOff
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
+    <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <Card className="space-y-5">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Scheduler Offer Details</p>

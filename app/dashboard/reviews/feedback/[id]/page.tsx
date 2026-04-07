@@ -104,7 +104,7 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
 
   if (!feedback) {
     return (
-      <main className="mx-auto w-full max-w-3xl px-4 py-10 md:py-14">
+      <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
         <Card className="space-y-3">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Feedback not found</h1>
           <p className="text-sm text-slate-600">This feedback entry may have been deleted.</p>
@@ -128,7 +128,7 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
   const smsBody = buildSmsBody(feedback.customerName, feedback.location.business.name);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
       <div className="space-y-5">
         <Link
           href="/dashboard/reviews/feedback"

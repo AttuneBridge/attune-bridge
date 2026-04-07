@@ -27,7 +27,7 @@ export default async function DashboardTextBackPage() {
 
   if (!subscription.isEnabled) {
     return (
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
+      <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
         <Card className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Missed Call Text Back Module</p>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -86,7 +86,7 @@ export default async function DashboardTextBackPage() {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-10 md:py-14">
+    <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <div className="space-y-4">
         <Card className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Missed Call Text Back Module</p>
