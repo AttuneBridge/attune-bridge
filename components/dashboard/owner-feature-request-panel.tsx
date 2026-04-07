@@ -55,8 +55,8 @@ export function OwnerFeatureRequestPanel({ businessId, businessEmail, requests }
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[1fr_1fr] md:items-start">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div className="grid gap-6 md:grid-cols-[1fr_1fr] md:items-stretch">
+          <div className="h-full rounded-xl border border-slate-200 bg-slate-50 p-3">
             <h3 className="text-sm font-semibold text-slate-900">Request a feature</h3>
             <p className="mb-2 text-sm text-slate-700">
               Tell us what would make AttuneBridge more useful in your daily workflow.
@@ -64,7 +64,7 @@ export function OwnerFeatureRequestPanel({ businessId, businessEmail, requests }
             <OwnerFeatureRequestForm businessId={businessId} />
           </div>
 
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="flex h-full flex-col space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Recent requests</p>
               <select

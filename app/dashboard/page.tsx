@@ -137,8 +137,8 @@ export default async function DashboardHomePage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
-      <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-start">
-        <Card className="space-y-4">
+      <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-stretch">
+        <Card className="flex h-full flex-col space-y-4">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Dashboard Home</p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Welcome back, {workspace.businessName}</h1>
           <p className="text-sm text-slate-700">
@@ -207,7 +207,7 @@ export default async function DashboardHomePage() {
           </div>
         </Card>
 
-        <Card className="space-y-3">
+        <Card className="flex h-full flex-col space-y-3">
           <h2 className="text-lg font-semibold text-slate-900">Module subscriptions</h2>
           <p className="text-sm text-slate-700">
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
