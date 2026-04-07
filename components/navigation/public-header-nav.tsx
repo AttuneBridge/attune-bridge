@@ -9,8 +9,8 @@ type PublicHeaderNavProps = {
 
 function getLinkClass(isActive: boolean) {
   return isActive
-    ? "rounded-full border border-slate-300 bg-white px-2.5 py-1 text-slate-900"
-    : "hover:text-slate-900";
+    ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
+    : "text-app-muted hover:text-app-text";
 }
 
 export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
@@ -27,7 +27,7 @@ export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
     pathname.startsWith("/dashboard/");
 
   return (
-    <nav className="flex items-center gap-4 text-sm text-slate-700">
+    <nav className="flex items-center gap-4 text-sm text-app-muted">
       <Link href="/" aria-current={isHomeActive ? "page" : undefined} className={getLinkClass(isHomeActive)}>
         Home
       </Link>
@@ -54,20 +54,18 @@ export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
       </Link>
 
       {hasDashboardAccess ? (
-        <Link
-          href="/dashboard"
-          aria-current={isOwnerAreaActive ? "page" : undefined}
-          className={getLinkClass(isOwnerAreaActive)}
-        >
-          Dashboard
-        </Link>
+        <form action="/api/auth/sign-out" method="post">
+          <button type="submit" className={getLinkClass(isOwnerAreaActive)}>
+            Sign Out
+          </button>
+        </form>
       ) : (
         <Link
           href="/dashboard/access"
           aria-current={isOwnerAreaActive ? "page" : undefined}
           className={getLinkClass(isOwnerAreaActive)}
         >
-          Dashboard Access
+          Sign In
         </Link>
       )}
     </nav>

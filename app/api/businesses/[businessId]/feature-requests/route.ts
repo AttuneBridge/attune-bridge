@@ -78,18 +78,31 @@ export async function POST(
 
   const requestOwnerEmail = ownerEmail || business.email.toLowerCase();
 
-  const featureRequest = await prisma.ownerFeatureRequest.create({
-    data: {
-      businessId: business.id,
-      ownerEmail: requestOwnerEmail,
-      module: requestModule,
-      details,
-    },
-    select: {
-      id: true,
-      module: true,
-      createdAt: true,
-    },
+  const featureRequest = await prisma.$transaction(async (tx) => {
+    const created = await tx.ownerFeatureRequest.create({
+      data: {
+        businessId: business.id,
+        ownerEmail: requestOwnerEmail,
+        module: requestModule,
+        details,
+      },
+      select: {
+        id: true,
+        module: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    await tx.ownerFeatureRequestVote.create({
+      data: {
+        businessId: business.id,
+        featureRequestId: created.id,
+        ownerEmail: requestOwnerEmail,
+      },
+    });
+
+    return created;
   });
 
   await trackValidationEvent({
@@ -102,5 +115,14 @@ export async function POST(
       },
   });
 
-  return NextResponse.json({ ok: true, featureRequest }, { status: 201 });
+  return NextResponse.json(
+    {
+      ok: true,
+      featureRequest: {
+        ...featureRequest,
+        upvoteCount: 1,
+      },
+    },
+    { status: 201 },
+  );
 }

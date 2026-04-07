@@ -4,6 +4,7 @@ import { OwnerFeatureRequestPanel } from "@/components/dashboard/owner-feature-r
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
 import { RenewSubscriptionForm } from "@/components/forms/renew-subscription-form";
 import { Card } from "@/components/ui/card";
+import { getRequestIdentity } from "@/lib/identity/request-identity";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
 import { getDayDelta } from "@/lib/subscription-countdown";
@@ -45,6 +46,8 @@ function getStatusLabel(status: SubscriptionStatus) {
 
 export default async function DashboardHomePage() {
   const workspace = await getOwnerWorkspaceContextOrRedirect();
+  const identity = await getRequestIdentity();
+  const viewerEmail = identity?.email?.toLowerCase() ?? null;
   const business = await prisma.business.findUnique({
     where: { id: workspace.businessId },
     select: {
@@ -64,6 +67,21 @@ export default async function DashboardHomePage() {
           ownerEmail: true,
           details: true,
           module: true,
+          status: true,
+          votes: {
+            where: {
+              ownerEmail: viewerEmail ?? "__no_dashboard_owner__",
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+          _count: {
+            select: {
+              votes: true,
+            },
+          },
           createdAt: true,
         },
       },
@@ -224,6 +242,9 @@ export default async function DashboardHomePage() {
           ownerEmail: request.ownerEmail,
           details: request.details,
           module: request.module,
+          status: request.status,
+          hasUpvoted: request.votes.length > 0,
+          upvoteCount: request._count.votes,
           createdAt: request.createdAt.toISOString(),
         }))}
       />

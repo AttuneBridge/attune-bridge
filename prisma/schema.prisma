@@ -27,6 +27,7 @@ model Business {
   memberships          BusinessMembership[]
   notificationEvents   NotificationEvent[]
   featureRequests      OwnerFeatureRequest[]
+  featureRequestVotes  OwnerFeatureRequestVote[]
   validationEvents     ValidationEvent[]
   moduleSubscriptions  BusinessModuleSubscription[]
   schedulerContacts    SchedulerContact[]
@@ -124,12 +125,27 @@ model OwnerFeatureRequest {
   businessId String
   ownerEmail String
   module     FeatureRequestModule @default(PLATFORM)
+  status     FeatureRequestStatus @default(NEW)
   details    String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  votes      OwnerFeatureRequestVote[]
   createdAt  DateTime @default(now())
 
-  @@index([businessId, module, createdAt])
+  @@index([businessId, status, module, createdAt])
   @@index([ownerEmail, createdAt])
+}
+
+model OwnerFeatureRequestVote {
+  id               String              @id @default(cuid())
+  businessId       String
+  featureRequestId String
+  ownerEmail       String
+  featureRequest   OwnerFeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt        DateTime            @default(now())
+
+  @@unique([featureRequestId, ownerEmail])
+  @@index([businessId, featureRequestId, createdAt])
 }
 
 model Location {
@@ -461,6 +477,14 @@ enum FeatureRequestModule {
   LOYALTY
   MISSED_CALL_TEXTBACK
   PLATFORM
+}
+
+enum FeatureRequestStatus {
+  NEW
+  UNDER_REVIEW
+  ACCEPTED
+  SHIPPED
+  DECLINED
 }
 
 enum LoyaltyPlaybookStatus {
