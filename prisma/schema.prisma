@@ -123,11 +123,12 @@ model OwnerFeatureRequest {
   id         String   @id @default(cuid())
   businessId String
   ownerEmail String
+  module     FeatureRequestModule @default(PLATFORM)
   details    String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
 
-  @@index([businessId, createdAt])
+  @@index([businessId, module, createdAt])
   @@index([ownerEmail, createdAt])
 }
 
@@ -452,6 +453,14 @@ enum SubscriptionStatus {
   ACTIVE_PAID
   INACTIVE_EXPIRED
   INACTIVE_CANCELED
+}
+
+enum FeatureRequestModule {
+  REVIEWS
+  SCHEDULER
+  LOYALTY
+  MISSED_CALL_TEXTBACK
+  PLATFORM
 }
 
 enum LoyaltyPlaybookStatus {

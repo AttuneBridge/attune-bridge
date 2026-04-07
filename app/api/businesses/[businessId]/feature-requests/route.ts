@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
+import { FeatureRequestModule } from "@prisma/client";
 import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
 type FeatureRequestBody = {
   ownerEmail?: unknown;
+  module?: unknown;
   details?: unknown;
   manageToken?: unknown;
 };
+
+const FEATURE_REQUEST_MODULES = new Set<string>(Object.values(FeatureRequestModule));
 
 function isLikelyEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -28,8 +32,12 @@ export async function POST(
   }
 
   const ownerEmail = typeof body.ownerEmail === "string" ? body.ownerEmail.trim().toLowerCase() : "";
+  const moduleValue = typeof body.module === "string" ? body.module.trim().toUpperCase() : "";
   const details = typeof body.details === "string" ? body.details.trim() : "";
   const manageToken = typeof body.manageToken === "string" ? body.manageToken.trim() : "";
+  const requestModule = FEATURE_REQUEST_MODULES.has(moduleValue)
+    ? (moduleValue as FeatureRequestModule)
+    : FeatureRequestModule.PLATFORM;
 
   if (!details) {
     return NextResponse.json(
@@ -74,10 +82,12 @@ export async function POST(
     data: {
       businessId: business.id,
       ownerEmail: requestOwnerEmail,
+      module: requestModule,
       details,
     },
     select: {
       id: true,
+      module: true,
       createdAt: true,
     },
   });
@@ -85,10 +95,11 @@ export async function POST(
   await trackValidationEvent({
     event: validationEvent.ownerFeatureRequestSubmitted,
     businessId: business.id,
-    metadata: {
-      featureRequestId: featureRequest.id,
-      detailsLength: details.length,
-    },
+      metadata: {
+        featureRequestId: featureRequest.id,
+        module: featureRequest.module,
+        detailsLength: details.length,
+      },
   });
 
   return NextResponse.json({ ok: true, featureRequest }, { status: 201 });

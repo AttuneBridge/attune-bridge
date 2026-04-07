@@ -11,8 +11,17 @@ type FeatureRequestResponse = {
   error?: string;
 };
 
+const moduleOptions = [
+  { value: "REVIEWS", label: "Reviews" },
+  { value: "SCHEDULER", label: "Last-Minute Scheduler" },
+  { value: "LOYALTY", label: "Loyalty Builder" },
+  { value: "MISSED_CALL_TEXTBACK", label: "Missed Call Text Back" },
+  { value: "PLATFORM", label: "Platform / Dashboard" },
+] as const;
+
 export function OwnerFeatureRequestForm({ businessId }: OwnerFeatureRequestFormProps) {
   const maxDetailsLength = 1000;
+  const [module, setModule] = useState<(typeof moduleOptions)[number]["value"]>("REVIEWS");
   const [details, setDetails] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +49,7 @@ export function OwnerFeatureRequestForm({ businessId }: OwnerFeatureRequestFormP
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            module,
             details: normalizedDetails,
           }),
         },
@@ -63,6 +73,24 @@ export function OwnerFeatureRequestForm({ businessId }: OwnerFeatureRequestFormP
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      <div>
+        <label htmlFor="featureRequestModule" className="mb-1.5 block text-sm font-medium text-slate-800">
+          Which module is this for?
+        </label>
+        <select
+          id="featureRequestModule"
+          value={module}
+          onChange={(event) => setModule(event.target.value as (typeof moduleOptions)[number]["value"])}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
+        >
+          {moduleOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div>
         <label htmlFor="featureRequestDetails" className="mb-1.5 block text-sm font-medium text-slate-800">
           What feature would help most?
