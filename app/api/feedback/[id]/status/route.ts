@@ -1,6 +1,7 @@
 import { FeedbackStatus, RecoveryOutcome } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
 type StatusRequestBody = {
   status?: unknown;
@@ -73,9 +74,15 @@ export async function PATCH(
     where: { id },
     select: {
       id: true,
+      locationId: true,
       status: true,
       recoveryOutcome: true,
       firstRespondedAt: true,
+      location: {
+        select: {
+          businessId: true,
+        },
+      },
     },
   });
 
@@ -124,6 +131,68 @@ export async function PATCH(
       internalNotes: true,
     },
   });
+
+  const eventsToTrack: Array<Promise<void>> = [];
+
+  if (nextStatus && nextStatus !== current.status) {
+    eventsToTrack.push(
+      trackValidationEvent({
+        event: validationEvent.reviewsCaseStatusUpdated,
+        businessId: current.location.businessId,
+        locationId: current.locationId,
+        metadata: {
+          feedbackId: current.id,
+          previousStatus: current.status,
+          nextStatus,
+        },
+      }),
+    );
+  }
+
+  if (recoveryOutcomeRaw && nextRecoveryOutcome && nextRecoveryOutcome !== current.recoveryOutcome) {
+    eventsToTrack.push(
+      trackValidationEvent({
+        event: validationEvent.reviewsRecoveryOutcomeUpdated,
+        businessId: current.location.businessId,
+        locationId: current.locationId,
+        metadata: {
+          feedbackId: current.id,
+          previousOutcome: current.recoveryOutcome,
+          nextOutcome: nextRecoveryOutcome,
+        },
+      }),
+    );
+  }
+
+  if (Number.isFinite(reminderHoursRaw) && nextFollowUpAt instanceof Date) {
+    eventsToTrack.push(
+      trackValidationEvent({
+        event: validationEvent.reviewsFollowUpReminderSet,
+        businessId: current.location.businessId,
+        locationId: current.locationId,
+        metadata: {
+          feedbackId: current.id,
+          reminderHours: Math.floor(reminderHoursRaw),
+          nextFollowUpAt: nextFollowUpAt.toISOString(),
+        },
+      }),
+    );
+  }
+
+  if (clearFollowUpReminder) {
+    eventsToTrack.push(
+      trackValidationEvent({
+        event: validationEvent.reviewsFollowUpReminderCleared,
+        businessId: current.location.businessId,
+        locationId: current.locationId,
+        metadata: {
+          feedbackId: current.id,
+        },
+      }),
+    );
+  }
+
+  await Promise.all(eventsToTrack);
 
   return NextResponse.json({
     ok: true,
