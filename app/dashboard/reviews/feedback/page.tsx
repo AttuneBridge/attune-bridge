@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { RecoveryOutcome, Sentiment } from "@prisma/client";
 import { Card } from "@/components/ui/card";
 import { FeedbackInboxList } from "@/components/reviews/feedback-inbox-list";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
+import { validationEvent } from "@/lib/validation-events";
 
 export default async function DashboardFeedbackInboxPage() {
   const workspace = await getOwnerWorkspaceContextOrRedirect();
@@ -51,6 +53,52 @@ export default async function DashboardFeedbackInboxPage() {
     take: 25,
   });
 
+  const entryIds = feedbackEntries.map((entry) => entry.id);
+  const reaskEvents = entryIds.length
+    ? await prisma.validationEvent.findMany({
+        where: {
+          businessId: workspace.businessId,
+          event: validationEvent.reviewsReaskSent,
+        },
+        select: {
+          metadata: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      })
+    : [];
+
+  const latestReaskByFeedbackId = new Map<string, Date>();
+  const entryIdSet = new Set(entryIds);
+  for (const event of reaskEvents) {
+    const metadata =
+      event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? (event.metadata as Record<string, unknown>)
+        : null;
+    const feedbackId = typeof metadata?.feedbackId === "string" ? metadata.feedbackId : null;
+    if (!feedbackId || !entryIdSet.has(feedbackId) || latestReaskByFeedbackId.has(feedbackId)) {
+      continue;
+    }
+
+    latestReaskByFeedbackId.set(feedbackId, event.createdAt);
+  }
+
+  const nowMs = Date.now();
+  const reaskEligibleCount = feedbackEntries.filter((entry) => {
+    const isEligibleOutcome =
+      (entry.sentiment === Sentiment.NEUTRAL || entry.sentiment === Sentiment.NEGATIVE) &&
+      entry.status === "RESOLVED" &&
+      entry.recoveryOutcome === RecoveryOutcome.SAVED &&
+      entry.resolvedAt &&
+      entry.resolvedAt.getTime() <= nowMs - 24 * 60 * 60 * 1000;
+
+    return isEligibleOutcome && !latestReaskByFeedbackId.has(entry.id);
+  }).length;
+
+  const reaskSentCount = latestReaskByFeedbackId.size;
+
   const serializedEntries = feedbackEntries.map((entry) => ({
     id: entry.id,
     sentiment: entry.sentiment,
@@ -60,6 +108,7 @@ export default async function DashboardFeedbackInboxPage() {
     resolvedAt: entry.resolvedAt ? entry.resolvedAt.toISOString() : null,
     nextFollowUpAt: entry.nextFollowUpAt ? entry.nextFollowUpAt.toISOString() : null,
     assignedToEmail: entry.assignedMembership?.user.email ?? null,
+    reviewReaskSentAt: latestReaskByFeedbackId.get(entry.id)?.toISOString() ?? null,
     message: entry.message,
     wantsFollowUp: entry.wantsFollowUp,
     followUpPreference: entry.followUpPreference,
@@ -118,6 +167,8 @@ export default async function DashboardFeedbackInboxPage() {
           <FeedbackInboxList
             entries={serializedEntries}
             exportHref={`/api/businesses/${workspace.businessId}/reviews/sla-export?days=7`}
+            reaskEligibleCount={reaskEligibleCount}
+            reaskSentCount={reaskSentCount}
           />
         )}
       </Card>

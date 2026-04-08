@@ -11,6 +11,7 @@ export const validationEvent = {
   reviewsCaseStatusUpdated: "reviews_case_status_updated",
   reviewsCaseAssigned: "reviews_case_assigned",
   reviewsRecoveryPlaybookApplied: "reviews_recovery_playbook_applied",
+  reviewsReaskSent: "reviews_reask_sent",
   reviewsRecoveryOutcomeUpdated: "reviews_recovery_outcome_updated",
   reviewsFollowUpReminderSet: "reviews_follow_up_reminder_set",
   reviewsFollowUpReminderCleared: "reviews_follow_up_reminder_cleared",

@@ -11,6 +11,7 @@ import {
 import { FeedbackAssignmentControls } from "@/components/forms/feedback-assignment-controls";
 import { FeedbackNotesEditor } from "@/components/forms/feedback-notes-editor";
 import { FeedbackPlaybookTemplates } from "@/components/forms/feedback-playbook-templates";
+import { FeedbackReaskControls } from "@/components/forms/feedback-reask-controls";
 import { FeedbackStatusControls } from "@/components/forms/feedback-status-controls";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
@@ -111,6 +112,8 @@ function formatTimelineEvent(eventName: string, metadata: Record<string, unknown
       return `Recovery playbook applied: ${String(metadata?.template ?? "(unknown)")}`;
     case "reviews_internal_notes_updated":
       return metadata?.hasNotes ? "Internal notes updated" : "Internal notes cleared";
+    case "reviews_reask_sent":
+      return `Review re-ask sent via ${String(metadata?.channel ?? "(unknown)")}`;
     default:
       return eventName;
   }
@@ -182,6 +185,7 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
           validationEvent.reviewsCaseAssigned,
           validationEvent.reviewsRecoveryPlaybookApplied,
           validationEvent.reviewsInternalNotesUpdated,
+          validationEvent.reviewsReaskSent,
         ],
       },
       metadata: {
@@ -201,6 +205,23 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
     take: 30,
   });
 
+  const latestReaskEvent = await prisma.validationEvent.findFirst({
+    where: {
+      businessId: workspace.businessId,
+      event: validationEvent.reviewsReaskSent,
+      metadata: {
+        path: ["feedbackId"],
+        equals: id,
+      },
+    },
+    select: {
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
   if (!feedback) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
@@ -214,6 +235,14 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
       </main>
     );
   }
+
+  const isReaskEligible =
+    feedback.status === FeedbackStatus.RESOLVED &&
+    feedback.recoveryOutcome === RecoveryOutcome.SAVED &&
+    (feedback.sentiment === Sentiment.NEGATIVE || feedback.sentiment === Sentiment.NEUTRAL) &&
+    Boolean(feedback.resolvedAt) &&
+    Boolean(feedback.resolvedAt && feedback.resolvedAt.getTime() <= Date.now() - 24 * 60 * 60 * 1000) &&
+    !latestReaskEvent;
 
   const hasEmail = Boolean(feedback.customerEmail);
   const phoneHref = feedback.phone ? toPhoneHref(feedback.phone) : null;
@@ -303,6 +332,21 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
             <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 md:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Internal Notes</p>
               <FeedbackNotesEditor feedbackId={feedback.id} initialNotes={feedback.internalNotes} />
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 md:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Reputation Re-ask</p>
+              <p className="text-sm text-slate-700">
+                For recovered neutral/negative cases, record when a public review re-ask is sent after a 24h resolution buffer.
+              </p>
+              <FeedbackReaskControls
+                feedbackId={feedback.id}
+                disabled={!isReaskEligible}
+                sentAtIso={latestReaskEvent ? latestReaskEvent.createdAt.toISOString() : null}
+              />
+              {!isReaskEligible && !latestReaskEvent ? (
+                <p className="text-xs text-slate-500">Case is not yet eligible (must be resolved, saved, and at least 24h old).</p>
+              ) : null}
             </div>
           </div>
 

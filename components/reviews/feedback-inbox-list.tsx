@@ -21,6 +21,7 @@ type FeedbackInboxEntry = {
   resolvedAt: string | null;
   nextFollowUpAt: string | null;
   assignedToEmail: string | null;
+  reviewReaskSentAt: string | null;
   message: string | null;
   wantsFollowUp: boolean;
   followUpPreference: FollowUpPreference;
@@ -154,7 +155,17 @@ function getSlaSignals(entry: FeedbackInboxEntry, nowMs: number) {
   };
 }
 
-export function FeedbackInboxList({ entries, exportHref }: { entries: FeedbackInboxEntry[]; exportHref: string }) {
+export function FeedbackInboxList({
+  entries,
+  exportHref,
+  reaskEligibleCount,
+  reaskSentCount,
+}: {
+  entries: FeedbackInboxEntry[];
+  exportHref: string;
+  reaskEligibleCount: number;
+  reaskSentCount: number;
+}) {
   const [expandedEntryIds, setExpandedEntryIds] = useState<Set<string>>(() => new Set());
   const [sentimentFilter, setSentimentFilter] = useState<Sentiment | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "ALL">("ALL");
@@ -376,6 +387,12 @@ export function FeedbackInboxList({ entries, exportHref }: { entries: FeedbackIn
             <span className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 font-medium text-slate-700">
               Resolved without outcome (7d): {recoveryTrends.sevenDay.unresolvedOutcome}
             </span>
+            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">
+              Re-ask sent: {reaskSentCount}
+            </span>
+            <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-medium text-amber-800">
+              Re-ask ready: {reaskEligibleCount}
+            </span>
           </div>
         </div>
 
@@ -586,6 +603,11 @@ export function FeedbackInboxList({ entries, exportHref }: { entries: FeedbackIn
                 {entry.reminderDueSoon ? (
                   <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800">
                     Reminder due soon
+                  </span>
+                ) : null}
+                {entry.reviewReaskSentAt ? (
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
+                    Re-ask sent
                   </span>
                 ) : null}
               </div>
