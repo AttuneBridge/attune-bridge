@@ -20,6 +20,7 @@ type FeedbackInboxEntry = {
   createdAt: string;
   resolvedAt: string | null;
   nextFollowUpAt: string | null;
+  assignedToEmail: string | null;
   message: string | null;
   wantsFollowUp: boolean;
   followUpPreference: FollowUpPreference;
@@ -559,6 +560,9 @@ export function FeedbackInboxList({ entries, exportHref }: { entries: FeedbackIn
                   {entry.location.business.name} - {entry.location.name}
                 </p>
                 <p className="text-xs text-slate-500">{new Date(entry.createdAt).toLocaleString()}</p>
+                <span className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                  {entry.assignedToEmail ? `Assigned: ${entry.assignedToEmail}` : "Unassigned"}
+                </span>
                 {entry.isOpenCase ? (
                   <span className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
                     Open {entry.ageHours}h

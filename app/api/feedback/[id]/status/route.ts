@@ -1,5 +1,6 @@
-import { FeedbackStatus, RecoveryOutcome } from "@prisma/client";
+import { BusinessMembershipRole, FeedbackStatus, RecoveryOutcome } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getRequestIdentity } from "@/lib/identity/request-identity";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
@@ -27,6 +28,12 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const identity = await getRequestIdentity();
+
+  if (!identity) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   const { id } = await context.params;
   let body: StatusRequestBody;
 
@@ -78,6 +85,7 @@ export async function PATCH(
       status: true,
       recoveryOutcome: true,
       firstRespondedAt: true,
+      internalNotes: true,
       location: {
         select: {
           businessId: true,
@@ -88,6 +96,19 @@ export async function PATCH(
 
   if (!current) {
     return NextResponse.json({ error: "Feedback not found." }, { status: 404 });
+  }
+
+  const actorMembership = await prisma.businessMembership.findFirst({
+    where: {
+      businessId: current.location.businessId,
+      userId: identity.userId,
+      role: BusinessMembershipRole.OWNER,
+    },
+    select: { id: true },
+  });
+
+  if (!actorMembership) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const now = new Date();
@@ -187,6 +208,21 @@ export async function PATCH(
         locationId: current.locationId,
         metadata: {
           feedbackId: current.id,
+        },
+      }),
+    );
+  }
+
+  if (internalNotesRaw !== null && internalNotesRaw !== (current.internalNotes ?? "")) {
+    eventsToTrack.push(
+      trackValidationEvent({
+        event: validationEvent.reviewsInternalNotesUpdated,
+        businessId: current.location.businessId,
+        locationId: current.locationId,
+        metadata: {
+          feedbackId: current.id,
+          hasNotes: internalNotesRaw.length > 0,
+          noteLength: internalNotesRaw.length,
         },
       }),
     );

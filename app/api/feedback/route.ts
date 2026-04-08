@@ -278,6 +278,7 @@ export async function POST(request: Request) {
     businessId: location.business.id,
     locationId: location.id,
     metadata: {
+      feedbackId: feedback.id,
       sentiment,
       wantsFollowUp,
       hasMessage: Boolean(message),
