@@ -8,6 +8,7 @@
     "dev:3001": "next dev -p 3001",
     "dev:fresh": "node scripts/kill-port.js && rm -rf .next && next dev -p 3000",
     "build": "pnpm run ci:generate && next build",
+    "vercel-build": "pnpm exec prisma migrate deploy && pnpm run build",
     "start": "next start",
     "clean": "rm -rf .next",
     "lint": "next lint",
