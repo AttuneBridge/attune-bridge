@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BusinessMembershipRole,
   FeedbackStatus,
   FollowUpPreference,
   NotificationChannel,
@@ -7,10 +8,13 @@ import {
   RecoveryOutcome,
   Sentiment,
 } from "@prisma/client";
+import { FeedbackAssignmentControls } from "@/components/forms/feedback-assignment-controls";
+import { FeedbackNotesEditor } from "@/components/forms/feedback-notes-editor";
 import { FeedbackStatusControls } from "@/components/forms/feedback-status-controls";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
+import { validationEvent } from "@/lib/validation-events";
 
 type FeedbackDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -88,6 +92,27 @@ function buildSmsBody(customerName: string | null, businessName: string) {
   return `Hi ${greeting} - this is ${businessName}. Thank you for your feedback. I am sorry your experience missed the mark. I would like to make it right; could you share a little more detail?`;
 }
 
+function formatTimelineEvent(eventName: string, metadata: Record<string, unknown> | null) {
+  switch (eventName) {
+    case "feedback_submitted":
+      return "Case created from private feedback";
+    case "reviews_case_status_updated":
+      return `Status updated to ${String(metadata?.nextStatus ?? "(unknown)")}`;
+    case "reviews_recovery_outcome_updated":
+      return `Recovery outcome set to ${String(metadata?.nextOutcome ?? "(unknown)")}`;
+    case "reviews_follow_up_reminder_set":
+      return `Follow-up reminder set (${String(metadata?.reminderHours ?? "?")}h)`;
+    case "reviews_follow_up_reminder_cleared":
+      return "Follow-up reminder cleared";
+    case "reviews_case_assigned":
+      return metadata?.nextAssignedMembershipId ? "Case assigned" : "Case unassigned";
+    case "reviews_internal_notes_updated":
+      return metadata?.hasNotes ? "Internal notes updated" : "Internal notes cleared";
+    default:
+      return eventName;
+  }
+}
+
 export default async function DashboardFeedbackDetailPage({ params }: FeedbackDetailPageProps) {
   const workspace = await getOwnerWorkspaceContextOrRedirect();
   const { id } = await params;
@@ -110,7 +135,66 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
           createdAt: "desc",
         },
       },
+      assignedMembership: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      },
     },
+  });
+
+  const assignmentOptions = await prisma.businessMembership.findMany({
+    where: {
+      businessId: workspace.businessId,
+      role: BusinessMembershipRole.OWNER,
+    },
+    select: {
+      id: true,
+      user: {
+        select: {
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  const timelineEvents = await prisma.validationEvent.findMany({
+    where: {
+      businessId: workspace.businessId,
+      event: {
+        in: [
+          validationEvent.feedbackSubmitted,
+          validationEvent.reviewsCaseStatusUpdated,
+          validationEvent.reviewsRecoveryOutcomeUpdated,
+          validationEvent.reviewsFollowUpReminderSet,
+          validationEvent.reviewsFollowUpReminderCleared,
+          validationEvent.reviewsCaseAssigned,
+          validationEvent.reviewsInternalNotesUpdated,
+        ],
+      },
+      metadata: {
+        path: ["feedbackId"],
+        equals: id,
+      },
+    },
+    select: {
+      id: true,
+      event: true,
+      metadata: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 30,
   });
 
   if (!feedback) {
@@ -192,6 +276,25 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Case Assignment</p>
+              <p className="text-sm text-slate-700">
+                Current assignee: {feedback.assignedMembership?.user.email ?? "Unassigned"}
+              </p>
+              <FeedbackAssignmentControls
+                feedbackId={feedback.id}
+                currentAssignedMembershipId={feedback.assignedMembershipId}
+                options={assignmentOptions.map((option) => ({ id: option.id, email: option.user.email }))}
+              />
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Internal Notes</p>
+              <FeedbackNotesEditor feedbackId={feedback.id} initialNotes={feedback.internalNotes} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Customer Details</p>
               <p>Customer name: {feedback.customerName || "(not provided)"}</p>
@@ -237,6 +340,33 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
               </div>
             </div>
           </div>
+        </Card>
+
+        <Card className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-slate-900">Case Activity Timeline</h2>
+            <p className="text-sm text-slate-600">Status, assignment, reminder, and notes changes for this case.</p>
+          </div>
+
+          {timelineEvents.length === 0 ? (
+            <p className="text-sm text-slate-600">No case activity recorded yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {timelineEvents.map((event) => {
+                const metadata =
+                  event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+                    ? (event.metadata as Record<string, unknown>)
+                    : null;
+
+                return (
+                  <div key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                    <p className="font-medium text-slate-900">{formatTimelineEvent(event.event, metadata)}</p>
+                    <p className="text-xs text-slate-500">{new Date(event.createdAt).toLocaleString()}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         <Card className="space-y-4">

@@ -67,6 +67,7 @@ model BusinessMembership {
   role       BusinessMembershipRole @default(OWNER)
   user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   business   Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assignedFeedback Feedback[]        @relation("FeedbackAssignment")
   createdAt  DateTime               @default(now())
   updatedAt  DateTime               @updatedAt
 
@@ -185,6 +186,7 @@ model ValidationEvent {
 model Feedback {
   id                 String              @id @default(cuid())
   locationId         String
+  assignedMembershipId String?
   sentiment          Sentiment
   message            String?
   wantsFollowUp      Boolean             @default(false)
@@ -199,6 +201,7 @@ model Feedback {
   resolvedAt         DateTime?
   nextFollowUpAt     DateTime?
   internalNotes      String?
+  assignedMembership BusinessMembership? @relation("FeedbackAssignment", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
   location           Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
   notificationEvents NotificationEvent[]
   loyaltyMessages    LoyaltyMessage[]
@@ -206,6 +209,7 @@ model Feedback {
 
   @@index([locationId])
   @@index([createdAt])
+  @@index([assignedMembershipId])
   @@index([status, recoveryOutcome, nextFollowUpAt])
 }
 

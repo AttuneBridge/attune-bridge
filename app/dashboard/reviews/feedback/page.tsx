@@ -35,6 +35,15 @@ export default async function DashboardFeedbackInboxPage() {
         },
         take: 6,
       },
+      assignedMembership: {
+        select: {
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -50,6 +59,7 @@ export default async function DashboardFeedbackInboxPage() {
     createdAt: entry.createdAt.toISOString(),
     resolvedAt: entry.resolvedAt ? entry.resolvedAt.toISOString() : null,
     nextFollowUpAt: entry.nextFollowUpAt ? entry.nextFollowUpAt.toISOString() : null,
+    assignedToEmail: entry.assignedMembership?.user.email ?? null,
     message: entry.message,
     wantsFollowUp: entry.wantsFollowUp,
     followUpPreference: entry.followUpPreference,
