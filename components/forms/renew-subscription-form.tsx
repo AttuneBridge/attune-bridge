@@ -14,6 +14,15 @@ type RenewResponse = {
   error?: string;
   action?: string;
   winbackExtensionDays?: number;
+  winbackVariant?: string;
+};
+
+const cancelReasonHints: Record<string, string> = {
+  LOW_USAGE: "We can help you activate faster with a lighter weekly routine and fewer setup steps.",
+  TOO_EXPENSIVE: "We can prioritize high-ROI modules first and sequence the rest over time.",
+  MISSING_FEATURES: "Share what is missing and we can map current workarounds while we ship roadmap updates.",
+  SWITCHING_TOOL: "Before you switch, compare recovered-case outcomes and response-time visibility side by side.",
+  OTHER: "Tell us what would make this worth keeping and we will route it to product + success.",
 };
 
 export function RenewSubscriptionForm({
@@ -47,7 +56,7 @@ export function RenewSubscriptionForm({
         body: JSON.stringify({
           ownerEmail: ownerEmail.trim(),
           action,
-          ...(action === "cancel" ? { cancelReason } : {}),
+          ...(action === "cancel" || action === "winback" ? { cancelReason } : {}),
           ...(manageToken ? { manageToken } : {}),
         }),
       });
@@ -63,7 +72,7 @@ export function RenewSubscriptionForm({
         result.action === "cancel"
           ? "Subscription canceled. Feedback link is now inactive."
           : result.action === "winback"
-            ? `Win-back accepted. Subscription remains active with ${result.winbackExtensionDays ?? 7} extra days.`
+            ? `Win-back accepted (${result.winbackVariant ?? "experiment"}). Subscription remains active with ${result.winbackExtensionDays ?? 7} extra days.`
             : "Subscription started. Feedback link reactivated.",
       );
       router.refresh();
@@ -121,13 +130,14 @@ export function RenewSubscriptionForm({
             <option value="SWITCHING_TOOL">Switching to another tool</option>
             <option value="OTHER">Other reason</option>
           </select>
+          <p className="text-xs text-amber-900">{cancelReasonHints[cancelReason] ?? cancelReasonHints.OTHER}</p>
           <button
             type="button"
             onClick={() => handleRenew("winback")}
             disabled={isLoading}
             className="inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Keep active + claim 7-day win-back extension
+            Keep active + claim win-back extension
           </button>
         </div>
       ) : null}
