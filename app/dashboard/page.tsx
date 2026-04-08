@@ -95,6 +95,8 @@ type PricingExperimentSummary = {
   winbackAccepted: number;
   cancelsWithReason: number;
   cancelReasons: Array<{ reason: string; count: number }>;
+  avgWinbackExtensionDays: number;
+  winbackVariants: Array<{ variant: string; count: number }>;
 };
 
 async function withFallback<T>(label: string, action: () => Promise<T>, fallback: T): Promise<T> {
@@ -836,31 +838,49 @@ export default async function DashboardHomePage() {
     .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
     .slice(0, 12);
 
-  const [winbackAccepted, cancelReasonEvents] = await withFallback(
+  const [winbackEvents, cancelReasonEvents] = await withFallback(
     "pricing-experiments",
     () =>
       Promise.all([
-        prisma.validationEvent.count({
-      where: {
-        businessId: workspace.businessId,
-        event: validationEvent.subscriptionWinbackAccepted,
-        createdAt: { gte: period30Start, lt: nowDate },
-      },
+        prisma.validationEvent.findMany({
+          where: {
+            businessId: workspace.businessId,
+            event: validationEvent.subscriptionWinbackAccepted,
+            createdAt: { gte: period30Start, lt: nowDate },
+          },
+          select: {
+            metadata: true,
+          },
+          take: 200,
         }),
         prisma.validationEvent.findMany({
-      where: {
-        businessId: workspace.businessId,
-        event: validationEvent.subscriptionCancelReasonCaptured,
-        createdAt: { gte: period30Start, lt: nowDate },
-      },
-      select: {
-        metadata: true,
-      },
-      take: 200,
+          where: {
+            businessId: workspace.businessId,
+            event: validationEvent.subscriptionCancelReasonCaptured,
+            createdAt: { gte: period30Start, lt: nowDate },
+          },
+          select: {
+            metadata: true,
+          },
+          take: 200,
         }),
       ]),
-    [0, []],
+    [[], []],
   );
+
+  const winbackVariantCountMap = new Map<string, number>();
+  let winbackExtensionTotal = 0;
+  for (const event of winbackEvents) {
+    const metadata =
+      event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? (event.metadata as Record<string, unknown>)
+        : null;
+    const variant = typeof metadata?.winbackVariant === "string" ? metadata.winbackVariant : "UNKNOWN";
+    const extensionDays = typeof metadata?.winbackExtensionDays === "number" ? metadata.winbackExtensionDays : 0;
+
+    winbackVariantCountMap.set(variant, (winbackVariantCountMap.get(variant) ?? 0) + 1);
+    winbackExtensionTotal += extensionDays;
+  }
 
   const cancelReasonCountMap = new Map<string, number>();
   for (const event of cancelReasonEvents) {
@@ -873,12 +893,18 @@ export default async function DashboardHomePage() {
   }
 
   const pricingExperimentSummary: PricingExperimentSummary = {
-    winbackAccepted,
+    winbackAccepted: winbackEvents.length,
     cancelsWithReason: cancelReasonEvents.length,
     cancelReasons: [...cancelReasonCountMap.entries()]
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5),
+    avgWinbackExtensionDays:
+      winbackEvents.length === 0 ? 0 : Math.round((winbackExtensionTotal / winbackEvents.length) * 10) / 10,
+    winbackVariants: [...winbackVariantCountMap.entries()]
+      .map(([variant, count]) => ({ variant, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3),
   };
 
   return (
@@ -989,6 +1015,30 @@ export default async function DashboardHomePage() {
             <Card className="space-y-1">
               <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Cancels with reason (30d)</p>
               <p className="text-2xl font-semibold text-slate-900">{pricingExperimentSummary.cancelsWithReason}</p>
+            </Card>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Avg win-back extension days</p>
+              <p className="text-2xl font-semibold text-slate-900">{pricingExperimentSummary.avgWinbackExtensionDays}</p>
+            </Card>
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Win-back variants</p>
+              {pricingExperimentSummary.winbackVariants.length === 0 ? (
+                <p className="text-sm text-slate-600">No win-back events yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {pricingExperimentSummary.winbackVariants.map((entry) => (
+                    <span
+                      key={entry.variant}
+                      className="inline-flex rounded-full border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700"
+                    >
+                      {entry.variant.replace(/_/g, " ").toLowerCase()}: {entry.count}
+                    </span>
+                  ))}
+                </div>
+              )}
             </Card>
           </div>
 
