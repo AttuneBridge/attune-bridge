@@ -91,6 +91,12 @@ type DeadLetterItem = {
   occurredAt: Date;
 };
 
+type PricingExperimentSummary = {
+  winbackAccepted: number;
+  cancelsWithReason: number;
+  cancelReasons: Array<{ reason: string; count: number }>;
+};
+
 type OnboardingChecklistItem = {
   label: string;
   complete: boolean;
@@ -399,6 +405,17 @@ export default async function DashboardHomePage() {
       endsAt: null,
     };
   });
+
+  const enabledModuleCount = moduleSubscriptionsForForm.filter(
+    (entry) => entry.status === ModuleSubscriptionStatus.ACTIVE || entry.status === ModuleSubscriptionStatus.TRIAL,
+  ).length;
+
+  const recommendedBundleLabel =
+    enabledModuleCount <= 1
+      ? "Growth Bundle: Reviews + Scheduler + Missed Call Text Back"
+      : enabledModuleCount === 2
+        ? "Momentum Bundle: Add Loyalty Builder"
+        : "Full Revenue Bundle: Keep all modules active";
 
   const access = evaluateBusinessAccess({
     subscriptionStatus: business.subscriptionStatus,
@@ -790,6 +807,46 @@ export default async function DashboardHomePage() {
     .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
     .slice(0, 12);
 
+  const [winbackAccepted, cancelReasonEvents] = await Promise.all([
+    prisma.validationEvent.count({
+      where: {
+        businessId: workspace.businessId,
+        event: validationEvent.subscriptionWinbackAccepted,
+        createdAt: { gte: period30Start, lt: nowDate },
+      },
+    }),
+    prisma.validationEvent.findMany({
+      where: {
+        businessId: workspace.businessId,
+        event: validationEvent.subscriptionCancelReasonCaptured,
+        createdAt: { gte: period30Start, lt: nowDate },
+      },
+      select: {
+        metadata: true,
+      },
+      take: 200,
+    }),
+  ]);
+
+  const cancelReasonCountMap = new Map<string, number>();
+  for (const event of cancelReasonEvents) {
+    const metadata =
+      event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? (event.metadata as Record<string, unknown>)
+        : null;
+    const reason = typeof metadata?.cancelReason === "string" ? metadata.cancelReason : "UNKNOWN";
+    cancelReasonCountMap.set(reason, (cancelReasonCountMap.get(reason) ?? 0) + 1);
+  }
+
+  const pricingExperimentSummary: PricingExperimentSummary = {
+    winbackAccepted,
+    cancelsWithReason: cancelReasonEvents.length,
+    cancelReasons: [...cancelReasonCountMap.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5),
+  };
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-stretch">
@@ -868,6 +925,56 @@ export default async function DashboardHomePage() {
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
           </p>
           <ModuleSubscriptionForm businessId={workspace.businessId} moduleSubscriptions={moduleSubscriptionsForForm} />
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Pricing experiments</p>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Packaging + win-back learning loop</h2>
+            <p className="text-sm text-slate-700">
+              Track cancellation reasons, win-back acceptance, and module bundle recommendations over the last 30 days.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p>
+              <span className="font-medium text-slate-900">Recommended bundle:</span> {recommendedBundleLabel}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              Recommendation adapts to currently active modules to encourage expansion without overwhelming setup.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Win-back accepted (30d)</p>
+              <p className="text-2xl font-semibold text-slate-900">{pricingExperimentSummary.winbackAccepted}</p>
+            </Card>
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Cancels with reason (30d)</p>
+              <p className="text-2xl font-semibold text-slate-900">{pricingExperimentSummary.cancelsWithReason}</p>
+            </Card>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Top cancel reasons</p>
+            {pricingExperimentSummary.cancelReasons.length === 0 ? (
+              <p className="mt-2 text-sm text-slate-600">No cancellation reason responses yet.</p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {pricingExperimentSummary.cancelReasons.map((entry) => (
+                  <span
+                    key={entry.reason}
+                    className="inline-flex rounded-full border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700"
+                  >
+                    {entry.reason.replace(/_/g, " ").toLowerCase()}: {entry.count}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
       </section>
 

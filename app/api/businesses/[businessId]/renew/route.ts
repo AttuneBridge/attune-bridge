@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
 const RENEWAL_DAYS = 30;
+const WINBACK_EXTENSION_DAYS = 7;
+
+const cancelReasonLabels = new Set([
+  "TOO_EXPENSIVE",
+  "LOW_USAGE",
+  "MISSING_FEATURES",
+  "SWITCHING_TOOL",
+  "OTHER",
+]);
 
 function addDays(from: Date, days: number) {
   const next = new Date(from);
@@ -28,13 +37,19 @@ export async function POST(
 ) {
   const { businessId } = await context.params;
   const body = (await request.json().catch(() => null)) as
-    | { action?: unknown; manageToken?: unknown }
+    | { action?: unknown; manageToken?: unknown; cancelReason?: unknown }
     | null;
   const action = body && typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
   const manageToken = body && typeof body.manageToken === "string" ? body.manageToken.trim() : "";
+  const cancelReasonRaw =
+    body && typeof body.cancelReason === "string" ? body.cancelReason.trim().toUpperCase() : "";
 
-  if (action !== "start" && action !== "cancel") {
-    return NextResponse.json({ error: "action must be start or cancel." }, { status: 400 });
+  if (action !== "start" && action !== "cancel" && action !== "winback") {
+    return NextResponse.json({ error: "action must be start, cancel, or winback." }, { status: 400 });
+  }
+
+  if (action === "cancel" && cancelReasonRaw && !cancelReasonLabels.has(cancelReasonRaw)) {
+    return NextResponse.json({ error: "Invalid cancel reason." }, { status: 400 });
   }
 
   const existing = await prisma.business.findUnique({
@@ -70,11 +85,18 @@ export async function POST(
             autoRenewEnabled: true,
             deactivatedAt: null,
           }
-        : {
+        : action === "cancel"
+          ? {
             subscriptionStatus: SubscriptionStatus.INACTIVE_CANCELED,
             autoRenewEnabled: false,
             deactivatedAt: now,
-          },
+            }
+          : {
+              subscriptionStatus: SubscriptionStatus.ACTIVE_PAID,
+              paidThrough: addDays(maxDate([existing.paidThrough, now], now), WINBACK_EXTENSION_DAYS),
+              autoRenewEnabled: true,
+              deactivatedAt: null,
+            },
     select: {
       id: true,
       subscriptionStatus: true,
@@ -87,18 +109,32 @@ export async function POST(
     event:
       action === "start"
         ? validationEvent.subscriptionStarted
-        : validationEvent.subscriptionCanceled,
+        : action === "cancel"
+          ? validationEvent.subscriptionCanceled
+          : validationEvent.subscriptionWinbackAccepted,
     businessId: updated.id,
     metadata: {
       action,
+      cancelReason: cancelReasonRaw || null,
       subscriptionStatus: updated.subscriptionStatus,
       autoRenewEnabled: updated.autoRenewEnabled,
     },
   });
 
+  if (action === "cancel" && cancelReasonRaw) {
+    await trackValidationEvent({
+      event: validationEvent.subscriptionCancelReasonCaptured,
+      businessId: updated.id,
+      metadata: {
+        cancelReason: cancelReasonRaw,
+      },
+    });
+  }
+
   return NextResponse.json({
     ok: true,
     renewalDays: RENEWAL_DAYS,
+    winbackExtensionDays: WINBACK_EXTENSION_DAYS,
     action,
     businessId: updated.id,
     subscriptionStatus: updated.subscriptionStatus,

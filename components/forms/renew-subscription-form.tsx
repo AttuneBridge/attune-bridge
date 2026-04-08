@@ -12,6 +12,8 @@ type RenewSubscriptionFormProps = {
 type RenewResponse = {
   ok?: boolean;
   error?: string;
+  action?: string;
+  winbackExtensionDays?: number;
 };
 
 export function RenewSubscriptionForm({
@@ -24,12 +26,15 @@ export function RenewSubscriptionForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("LOW_USAGE");
 
-  const handleRenew = async () => {
+  const handleRenew = async (actionOverride?: "start" | "cancel" | "winback") => {
     if (!ownerEmail.trim()) {
       setError("Enter the owner email used at signup.");
       return;
     }
+
+    const action = actionOverride ?? (isMonthlySubscriptionActive ? "cancel" : "start");
 
     setIsLoading(true);
     setError(null);
@@ -41,7 +46,8 @@ export function RenewSubscriptionForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerEmail: ownerEmail.trim(),
-          action: isMonthlySubscriptionActive ? "cancel" : "start",
+          action,
+          ...(action === "cancel" ? { cancelReason } : {}),
           ...(manageToken ? { manageToken } : {}),
         }),
       });
@@ -54,9 +60,11 @@ export function RenewSubscriptionForm({
       }
 
       setSuccessMessage(
-        isMonthlySubscriptionActive
+        result.action === "cancel"
           ? "Subscription canceled. Feedback link is now inactive."
-          : "Subscription started. Feedback link reactivated.",
+          : result.action === "winback"
+            ? `Win-back accepted. Subscription remains active with ${result.winbackExtensionDays ?? 7} extra days.`
+            : "Subscription started. Feedback link reactivated.",
       );
       router.refresh();
     } catch {
@@ -83,7 +91,7 @@ export function RenewSubscriptionForm({
       </div>
       <button
         type="button"
-        onClick={handleRenew}
+        onClick={() => handleRenew()}
         disabled={isLoading}
         className={`inline-flex rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70 ${
           isMonthlySubscriptionActive
@@ -99,6 +107,30 @@ export function RenewSubscriptionForm({
             ? "Cancel monthly subscription"
             : "Start monthly subscription"}
       </button>
+      {isMonthlySubscriptionActive ? (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs font-medium text-amber-900">Before you cancel, help us improve:</p>
+          <select
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+            className="w-full rounded-lg border border-amber-300 bg-white p-2 text-sm text-slate-800"
+          >
+            <option value="LOW_USAGE">Not using enough</option>
+            <option value="TOO_EXPENSIVE">Too expensive</option>
+            <option value="MISSING_FEATURES">Missing features I need</option>
+            <option value="SWITCHING_TOOL">Switching to another tool</option>
+            <option value="OTHER">Other reason</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => handleRenew("winback")}
+            disabled={isLoading}
+            className="inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Keep active + claim 7-day win-back extension
+          </button>
+        </div>
+      ) : null}
       {error ? <p className="text-xs text-rose-600">{error}</p> : null}
       {successMessage ? <p className="text-xs text-emerald-700">{successMessage}</p> : null}
     </div>
