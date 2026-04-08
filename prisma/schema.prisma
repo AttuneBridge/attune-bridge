@@ -37,6 +37,7 @@ model Business {
   loyaltyTemplates     LoyaltyTemplate[]
   loyaltyMessages      LoyaltyMessage[]
   loyaltyConversions   LoyaltyConversion[]
+  contactProfiles      ContactProfile[]
   missedCallConfig     MissedCallConfig?
   missedCallEvents     MissedCallEvent[]
   createdAt            DateTime                     @default(now())
@@ -46,6 +47,30 @@ model Business {
   @@index([trialEndsAt])
   @@index([paidThrough])
   @@index([autoRenewEnabled])
+}
+
+model ContactProfile {
+  id                String                   @id @default(cuid())
+  businessId        String
+  fullName          String?
+  email             String?
+  phone             String?
+  normalizedEmail   String?
+  normalizedPhone   String?
+  consentStatus     ContactConsentStatus    @default(UNKNOWN)
+  channelPreference ContactChannelPreference @default(NONE)
+  quietHoursStart   String?
+  quietHoursEnd     String?
+  source            ContactSource           @default(MANUAL)
+  lastInteractionAt DateTime?
+  business          Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@unique([businessId, normalizedEmail])
+  @@unique([businessId, normalizedPhone])
+  @@index([businessId, consentStatus, updatedAt])
+  @@index([businessId, channelPreference])
 }
 
 model User {
@@ -428,6 +453,27 @@ enum RecoveryOutcome {
   SAVED
   UNSAVED
   ESCALATED
+}
+
+enum ContactConsentStatus {
+  UNKNOWN
+  OPTED_IN
+  OPTED_OUT
+}
+
+enum ContactChannelPreference {
+  NONE
+  SMS
+  EMAIL
+  CALL
+}
+
+enum ContactSource {
+  MANUAL
+  FEEDBACK
+  SCHEDULER
+  LOYALTY
+  MISSED_CALL
 }
 
 enum NotificationChannel {
