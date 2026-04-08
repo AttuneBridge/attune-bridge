@@ -5,35 +5,21 @@ echo "[vercel-build] starting"
 echo "[vercel-build] node: $(node -v)"
 echo "[vercel-build] pnpm: $(pnpm -v)"
 
-run_with_timeout() {
-  local seconds="$1"
-  shift
+echo "[vercel-build] applying migrations (with retries)"
+max_attempts=3
+attempt=1
 
-  if command -v timeout >/dev/null 2>&1; then
-    timeout "${seconds}s" "$@"
-    return $?
+until pnpm exec prisma migrate deploy; do
+  code=$?
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "[vercel-build] prisma migrate deploy failed after ${attempt} attempts (exit ${code})"
+    exit "$code"
   fi
 
-  "$@"
-}
-
-echo "[vercel-build] checking migration status"
-run_with_timeout 120 pnpm exec prisma migrate status || {
-  code=$?
-  echo "[vercel-build] prisma migrate status failed (exit ${code})"
-  exit "$code"
-}
-
-echo "[vercel-build] applying migrations"
-run_with_timeout 300 pnpm exec prisma migrate deploy || {
-  code=$?
-  if [ "$code" -eq 124 ]; then
-    echo "[vercel-build] prisma migrate deploy timed out after 300s"
-  else
-    echo "[vercel-build] prisma migrate deploy failed (exit ${code})"
-  fi
-  exit "$code"
-}
+  echo "[vercel-build] prisma migrate deploy failed on attempt ${attempt} (exit ${code}); retrying in 10s"
+  attempt=$((attempt + 1))
+  sleep 10
+done
 
 echo "[vercel-build] running application build"
 pnpm run build
