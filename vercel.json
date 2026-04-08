@@ -1,5 +1,6 @@
 {
   "ignoreCommand": "bash scripts/vercel-ignore-preview.sh",
+  "buildCommand": "pnpm run vercel-build",
   "crons": [
     {
       "path": "/api/cron/demo/reset",
