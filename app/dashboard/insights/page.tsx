@@ -135,6 +135,94 @@ export default async function DashboardInsightsPage() {
   const reaskCoveragePercent = reaskEligibleCases === 0 ? 0 : Math.round((reaskSentCount / reaskEligibleCases) * 100);
   const redirectsAfterReaskRatio = reaskSentCount === 0 ? 0 : Math.round((reviewRedirects / reaskSentCount) * 10) / 10;
 
+  const [subscriptionStarts, subscriptionCancels, winbackEvents, cancelReasonEvents] = await withFallback(
+    "pricing-experiment-metrics",
+    () =>
+      Promise.all([
+        prisma.validationEvent.count({
+          where: {
+            businessId: workspace.businessId,
+            event: validationEvent.subscriptionStarted,
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        prisma.validationEvent.count({
+          where: {
+            businessId: workspace.businessId,
+            event: validationEvent.subscriptionCanceled,
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        }),
+        prisma.validationEvent.findMany({
+          where: {
+            businessId: workspace.businessId,
+            event: validationEvent.subscriptionWinbackAccepted,
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: {
+            metadata: true,
+          },
+          take: 500,
+        }),
+        prisma.validationEvent.findMany({
+          where: {
+            businessId: workspace.businessId,
+            event: validationEvent.subscriptionCancelReasonCaptured,
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: {
+            metadata: true,
+          },
+          take: 500,
+        }),
+      ]),
+    [0, 0, [], []],
+  );
+
+  const winbackVariantMap = new Map<string, number>();
+  const winbackByReasonMap = new Map<string, number>();
+  let totalExtensionDays = 0;
+
+  for (const event of winbackEvents) {
+    const metadata =
+      event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? (event.metadata as Record<string, unknown>)
+        : null;
+    const variant = typeof metadata?.winbackVariant === "string" ? metadata.winbackVariant : "UNKNOWN";
+    const reason = typeof metadata?.cancelReason === "string" ? metadata.cancelReason : "UNKNOWN";
+    const extensionDays = typeof metadata?.winbackExtensionDays === "number" ? metadata.winbackExtensionDays : 0;
+
+    winbackVariantMap.set(variant, (winbackVariantMap.get(variant) ?? 0) + 1);
+    winbackByReasonMap.set(reason, (winbackByReasonMap.get(reason) ?? 0) + 1);
+    totalExtensionDays += extensionDays;
+  }
+
+  const cancelReasonMap = new Map<string, number>();
+  for (const event of cancelReasonEvents) {
+    const metadata =
+      event.metadata && typeof event.metadata === "object" && !Array.isArray(event.metadata)
+        ? (event.metadata as Record<string, unknown>)
+        : null;
+    const reason = typeof metadata?.cancelReason === "string" ? metadata.cancelReason : "UNKNOWN";
+    cancelReasonMap.set(reason, (cancelReasonMap.get(reason) ?? 0) + 1);
+  }
+
+  const winbackAccepted = winbackEvents.length;
+  const cancelIntents = cancelReasonEvents.length;
+  const winbackRescueRate = cancelIntents === 0 ? 0 : Math.round((winbackAccepted / cancelIntents) * 100);
+  const avgWinbackExtensionDays =
+    winbackAccepted === 0 ? 0 : Math.round((totalExtensionDays / winbackAccepted) * 10) / 10;
+
+  const reasonPerformance = [...cancelReasonMap.entries()]
+    .map(([reason, cancelCount]) => {
+      const rescued = winbackByReasonMap.get(reason) ?? 0;
+      const rescueRate = cancelCount === 0 ? 0 : Math.round((rescued / cancelCount) * 100);
+
+      return { reason, cancelCount, rescued, rescueRate };
+    })
+    .sort((a, b) => b.cancelCount - a.cancelCount)
+    .slice(0, 5);
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <div className="space-y-4">
@@ -240,6 +328,75 @@ export default async function DashboardInsightsPage() {
               )}
             </div>
           </div>
+        </Card>
+
+        <Card className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Pricing experiments</p>
+            <p className="text-sm text-slate-700">30-day cancellation and win-back experiment performance.</p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Subscription starts</p>
+              <p className="text-2xl font-semibold text-slate-900">{subscriptionStarts}</p>
+            </Card>
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Cancel intents</p>
+              <p className="text-2xl font-semibold text-slate-900">{cancelIntents}</p>
+            </Card>
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Win-backs accepted</p>
+              <p className="text-2xl font-semibold text-emerald-700">{winbackAccepted}</p>
+            </Card>
+            <Card className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Rescue rate</p>
+              <p className="text-2xl font-semibold text-slate-900">{winbackRescueRate}%</p>
+            </Card>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Win-back variant split</p>
+              <p className="mt-1 text-xs text-slate-600">Average extension: {avgWinbackExtensionDays} days</p>
+              {winbackVariantMap.size === 0 ? (
+                <p className="mt-2 text-sm text-slate-600">No win-back events captured yet.</p>
+              ) : (
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  {[...winbackVariantMap.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([variant, count]) => (
+                      <span
+                        key={variant}
+                        className="inline-flex rounded-full border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700"
+                      >
+                        {variant.replace(/_/g, " ").toLowerCase()}: {count}
+                      </span>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Reason rescue performance</p>
+              {reasonPerformance.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-600">No cancellation reasons captured yet.</p>
+              ) : (
+                <div className="mt-2 space-y-1 text-xs text-slate-700">
+                  {reasonPerformance.map((row) => (
+                    <p key={row.reason}>
+                      <span className="font-medium text-slate-900">{row.reason.replace(/_/g, " ").toLowerCase()}:</span>{" "}
+                      {row.rescued}/{row.cancelCount} rescued ({row.rescueRate}%)
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-600">
+            Subscription cancels observed (raw): {subscriptionCancels}. Use cancel-intent reason events as denominator for rescue-rate analysis.
+          </p>
         </Card>
       </div>
     </main>
