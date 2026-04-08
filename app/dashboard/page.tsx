@@ -72,6 +72,24 @@ type ModuleFunnel = {
   steps: InstrumentationStep[];
 };
 
+type ReliabilityStats = {
+  sent: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  total: number;
+  failedRatePercent: number;
+};
+
+type DeadLetterItem = {
+  id: string;
+  module: string;
+  channel: string;
+  status: string;
+  reason: string;
+  occurredAt: Date;
+};
+
 function getStatusLabel(status: SubscriptionStatus) {
   switch (status) {
     case SubscriptionStatus.TRIAL_ACTIVE:
@@ -127,6 +145,20 @@ function getDeltaClass(value: number) {
   }
 
   return "text-slate-500";
+}
+
+function buildReliabilityStats(counts: { sent: number; failed: number; skipped: number; pending: number }): ReliabilityStats {
+  const total = counts.sent + counts.failed + counts.skipped + counts.pending;
+
+  return {
+    ...counts,
+    total,
+    failedRatePercent: total === 0 ? 0 : Math.round((counts.failed / total) * 100),
+  };
+}
+
+function formatReliabilityRate(value: number) {
+  return `${value}%`;
 }
 
 function getEventCount(countMap: Map<string, number>, eventName: string) {
@@ -427,6 +459,232 @@ export default async function DashboardHomePage() {
   );
   const moduleFunnels = buildModuleFunnels(instrumentationCountMap);
 
+  const [
+    notificationStatusCounts,
+    schedulerRecipientStatusCounts,
+    loyaltyMessageStatusCounts,
+    missedCallStatusCounts,
+    pendingLoyaltyMessages,
+    pendingSchedulerRecipients,
+    pendingMissedCallAutoReplies,
+    recentNotificationFailures,
+    recentSchedulerFailures,
+    recentLoyaltyFailures,
+    recentMissedCallFailures,
+  ] = await Promise.all([
+    prisma.notificationEvent.groupBy({
+      by: ["status"],
+      where: {
+        businessId: workspace.businessId,
+        createdAt: { gte: period7Start, lt: nowDate },
+      },
+      _count: { _all: true },
+    }),
+    prisma.schedulerOfferRecipient.groupBy({
+      by: ["smsStatus"],
+      where: {
+        offer: { businessId: workspace.businessId },
+        createdAt: { gte: period7Start, lt: nowDate },
+      },
+      _count: { _all: true },
+    }),
+    prisma.loyaltyMessage.groupBy({
+      by: ["status"],
+      where: {
+        businessId: workspace.businessId,
+        createdAt: { gte: period7Start, lt: nowDate },
+      },
+      _count: { _all: true },
+    }),
+    prisma.missedCallEvent.groupBy({
+      by: ["smsStatus"],
+      where: {
+        businessId: workspace.businessId,
+        createdAt: { gte: period7Start, lt: nowDate },
+      },
+      _count: { _all: true },
+    }),
+    prisma.loyaltyMessage.count({
+      where: {
+        businessId: workspace.businessId,
+        status: "PENDING",
+        sendAfter: { lte: nowDate },
+      },
+    }),
+    prisma.schedulerOfferRecipient.count({
+      where: {
+        offer: { businessId: workspace.businessId },
+        smsStatus: "PENDING",
+      },
+    }),
+    prisma.missedCallEvent.count({
+      where: {
+        businessId: workspace.businessId,
+        smsStatus: "PENDING",
+      },
+    }),
+    prisma.notificationEvent.findMany({
+      where: {
+        businessId: workspace.businessId,
+        createdAt: { gte: period7Start, lt: nowDate },
+        status: { in: ["FAILED", "SKIPPED"] },
+      },
+      select: {
+        id: true,
+        channel: true,
+        status: true,
+        errorMessage: true,
+        reason: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.schedulerOfferRecipient.findMany({
+      where: {
+        offer: { businessId: workspace.businessId },
+        createdAt: { gte: period7Start, lt: nowDate },
+        smsStatus: { in: ["FAILED", "SKIPPED"] },
+      },
+      select: {
+        id: true,
+        smsStatus: true,
+        smsErrorMessage: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.loyaltyMessage.findMany({
+      where: {
+        businessId: workspace.businessId,
+        createdAt: { gte: period7Start, lt: nowDate },
+        status: { in: ["FAILED", "SKIPPED", "CANCELED"] },
+      },
+      select: {
+        id: true,
+        channel: true,
+        status: true,
+        errorMessage: true,
+        skipReason: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.missedCallEvent.findMany({
+      where: {
+        businessId: workspace.businessId,
+        createdAt: { gte: period7Start, lt: nowDate },
+        smsStatus: { in: ["FAILED", "SKIPPED"] },
+      },
+      select: {
+        id: true,
+        smsStatus: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+  ]);
+
+  const notificationCountMap = new Map<string, number>(
+    notificationStatusCounts.map((entry) => [entry.status, entry._count._all]),
+  );
+  const schedulerCountMap = new Map<string, number>(
+    schedulerRecipientStatusCounts.map((entry) => [entry.smsStatus, entry._count._all]),
+  );
+  const loyaltyCountMap = new Map<string, number>(
+    loyaltyMessageStatusCounts.map((entry) => [entry.status, entry._count._all]),
+  );
+  const missedCallCountMap = new Map<string, number>(
+    missedCallStatusCounts.map((entry) => [entry.smsStatus, entry._count._all]),
+  );
+
+  const reliabilityByModule = [
+    {
+      module: "Reviews alerts",
+      stats: buildReliabilityStats({
+        sent: notificationCountMap.get("SENT") ?? 0,
+        failed: notificationCountMap.get("FAILED") ?? 0,
+        skipped: notificationCountMap.get("SKIPPED") ?? 0,
+        pending: 0,
+      }),
+    },
+    {
+      module: "Scheduler SMS",
+      stats: buildReliabilityStats({
+        sent: schedulerCountMap.get("SENT") ?? 0,
+        failed: schedulerCountMap.get("FAILED") ?? 0,
+        skipped: schedulerCountMap.get("SKIPPED") ?? 0,
+        pending: schedulerCountMap.get("PENDING") ?? 0,
+      }),
+    },
+    {
+      module: "Loyalty messages",
+      stats: buildReliabilityStats({
+        sent: loyaltyCountMap.get("SENT") ?? 0,
+        failed: loyaltyCountMap.get("FAILED") ?? 0,
+        skipped: loyaltyCountMap.get("SKIPPED") ?? 0,
+        pending: loyaltyCountMap.get("PENDING") ?? 0,
+      }),
+    },
+    {
+      module: "Missed-call auto replies",
+      stats: buildReliabilityStats({
+        sent: missedCallCountMap.get("SENT") ?? 0,
+        failed: missedCallCountMap.get("FAILED") ?? 0,
+        skipped: missedCallCountMap.get("SKIPPED") ?? 0,
+        pending: missedCallCountMap.get("PENDING") ?? 0,
+      }),
+    },
+  ];
+
+  const retryQueueSummary = {
+    loyaltyPending: pendingLoyaltyMessages,
+    schedulerPending: pendingSchedulerRecipients,
+    missedCallPending: pendingMissedCallAutoReplies,
+    totalPending: pendingLoyaltyMessages + pendingSchedulerRecipients + pendingMissedCallAutoReplies,
+  };
+
+  const deadLetterItems: DeadLetterItem[] = [
+    ...recentNotificationFailures.map((entry) => ({
+      id: entry.id,
+      module: "Reviews alerts",
+      channel: entry.channel,
+      status: entry.status,
+      reason: entry.errorMessage ?? entry.reason ?? "No reason provided",
+      occurredAt: entry.createdAt,
+    })),
+    ...recentSchedulerFailures.map((entry) => ({
+      id: entry.id,
+      module: "Scheduler SMS",
+      channel: "SMS",
+      status: entry.smsStatus,
+      reason: entry.smsErrorMessage ?? "No reason provided",
+      occurredAt: entry.createdAt,
+    })),
+    ...recentLoyaltyFailures.map((entry) => ({
+      id: entry.id,
+      module: "Loyalty messages",
+      channel: entry.channel,
+      status: entry.status,
+      reason: entry.errorMessage ?? entry.skipReason ?? "No reason provided",
+      occurredAt: entry.createdAt,
+    })),
+    ...recentMissedCallFailures.map((entry) => ({
+      id: entry.id,
+      module: "Missed-call auto replies",
+      channel: "SMS",
+      status: entry.smsStatus,
+      reason: entry.errorMessage ?? "No reason provided",
+      occurredAt: entry.createdAt,
+    })),
+  ]
+    .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+    .slice(0, 12);
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
       <section className="grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-stretch">
@@ -631,6 +889,93 @@ export default async function DashboardHomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Reliability Guardrails v1</p>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Delivery health and dead-letter visibility (last 7 days)</h2>
+            <p className="text-sm text-slate-700">
+              Track failed/skipped sends by module and keep overdue pending messages visible for follow-up.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {reliabilityByModule.map((row) => (
+              <div key={row.module} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900">{row.module}</p>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      row.stats.failedRatePercent > 2
+                        ? "border-rose-200 bg-rose-50 text-rose-700"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    }`}
+                  >
+                    Failed rate {formatReliabilityRate(row.stats.failedRatePercent)}
+                  </span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-700">
+                  <p>
+                    <span className="font-medium text-slate-900">Sent:</span> {row.stats.sent}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Failed:</span> {row.stats.failed}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Skipped:</span> {row.stats.skipped}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Pending:</span> {row.stats.pending}
+                  </p>
+                  <p className="col-span-2">
+                    <span className="font-medium text-slate-900">Total events:</span> {row.stats.total}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Retry queue snapshot</p>
+            <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
+              <p>
+                <span className="font-medium text-slate-900">Loyalty pending:</span> {retryQueueSummary.loyaltyPending}
+              </p>
+              <p>
+                <span className="font-medium text-slate-900">Scheduler pending:</span> {retryQueueSummary.schedulerPending}
+              </p>
+              <p>
+                <span className="font-medium text-slate-900">Missed-call pending:</span> {retryQueueSummary.missedCallPending}
+              </p>
+              <p className="md:col-span-3">
+                <span className="font-medium text-slate-900">Total pending:</span> {retryQueueSummary.totalPending}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Dead-letter recent failures</p>
+            {deadLetterItems.length === 0 ? (
+              <p className="mt-2 text-sm text-slate-600">No failed or skipped sends recorded in the last 7 days.</p>
+            ) : (
+              <div className="mt-2 space-y-2 text-sm text-slate-700">
+                {deadLetterItems.map((item) => (
+                  <div key={`${item.module}-${item.id}`} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-slate-900">{item.module}</span>
+                      <span className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs">{item.channel}</span>
+                      <span className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs">{item.status}</span>
+                      <span className="text-xs text-slate-500">{item.occurredAt.toLocaleString()}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600">{item.reason}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       </section>
