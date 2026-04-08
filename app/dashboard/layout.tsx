@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BusinessMembershipRole } from "@prisma/client";
+import { AppModule, BusinessMembershipRole } from "@prisma/client";
 import { headers } from "next/headers";
 import { DashboardNav } from "@/components/navigation/dashboard-nav";
 import { PublicHeaderNav } from "@/components/navigation/public-header-nav";
@@ -35,7 +35,16 @@ export default async function DashboardLayout({
     })
   )?.businessId;
 
-  const enabledModules = businessId ? await getEnabledModulesForBusiness(businessId) : [];
+  const enabledModules = businessId
+    ? await (async () => {
+        try {
+          return await getEnabledModulesForBusiness(businessId);
+        } catch (error) {
+          console.error("[dashboard-layout] module subscription lookup failed", error);
+          return [AppModule.FEEDBACK] as AppModule[];
+        }
+      })()
+    : [];
 
   if (!businessId) {
     redirectToDashboardAccess("/dashboard");
