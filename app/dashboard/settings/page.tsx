@@ -9,6 +9,15 @@ import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
 
+async function withFallback<T>(label: string, action: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    console.error(`[dashboard-settings] ${label} failed`, error);
+    return fallback;
+  }
+}
+
 const OWNER_MANAGED_MODULES: Array<Exclude<AppModule, "FEEDBACK">> = [
   AppModule.REVIEWS,
   AppModule.SCHEDULER,
@@ -34,31 +43,52 @@ function getStatusLabel(status: SubscriptionStatus) {
 export default async function DashboardSettingsPage() {
   const workspace = await getOwnerWorkspaceContextOrRedirect();
 
-  const [business, moduleSubscriptions] = await Promise.all([
-    prisma.business.findUnique({
-      where: {
-        id: workspace.businessId,
-      },
-      select: {
-        id: true,
-        subscriptionStatus: true,
-        trialEndsAt: true,
-        paidThrough: true,
-        autoRenewEnabled: true,
-      },
-    }),
-    prisma.businessModuleSubscription.findMany({
-      where: {
-        businessId: workspace.businessId,
-      },
-      select: {
-        module: true,
-        status: true,
-        startedAt: true,
-        endsAt: true,
-      },
-    }),
-  ]);
+  type SettingsTuple = [
+    {
+      id: string;
+      subscriptionStatus: SubscriptionStatus;
+      trialEndsAt: Date | null;
+      paidThrough: Date | null;
+      autoRenewEnabled: boolean;
+    } | null,
+    Array<{
+      module: AppModule;
+      status: ModuleSubscriptionStatus;
+      startedAt: Date | null;
+      endsAt: Date | null;
+    }>,
+  ];
+
+  const [business, moduleSubscriptions] = await withFallback<SettingsTuple>(
+    "settings-queries",
+    () =>
+      Promise.all([
+        prisma.business.findUnique({
+          where: {
+            id: workspace.businessId,
+          },
+          select: {
+            id: true,
+            subscriptionStatus: true,
+            trialEndsAt: true,
+            paidThrough: true,
+            autoRenewEnabled: true,
+          },
+        }),
+        prisma.businessModuleSubscription.findMany({
+          where: {
+            businessId: workspace.businessId,
+          },
+          select: {
+            module: true,
+            status: true,
+            startedAt: true,
+            endsAt: true,
+          },
+        }),
+      ]),
+    [null, []],
+  );
 
   if (!business) {
     return (

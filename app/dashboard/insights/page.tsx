@@ -3,52 +3,67 @@ import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
 
+async function withFallback<T>(label: string, action: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    console.error(`[dashboard-insights] ${label} failed`, error);
+    return fallback;
+  }
+}
+
 export default async function DashboardInsightsPage() {
   const workspace = await getOwnerWorkspaceContextOrRedirect();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const [feedbackVolume, privateCases, resolvedCases, recoveredCases, reviewRedirects, openCases] = await Promise.all([
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        createdAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
-        createdAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        status: FeedbackStatus.RESOLVED,
-        resolvedAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        recoveryOutcome: RecoveryOutcome.SAVED,
-        resolvedAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.validationEvent.count({
-      where: {
-        businessId: workspace.businessId,
-        event: "review_redirect_opened",
-        createdAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        status: { in: [FeedbackStatus.NEW, FeedbackStatus.IN_PROGRESS] },
-      },
-    }),
-  ]);
+  const [feedbackVolume, privateCases, resolvedCases, recoveredCases, reviewRedirects, openCases] =
+    await withFallback(
+      "insights-metrics",
+      () =>
+        Promise.all([
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              createdAt: { gte: thirtyDaysAgo },
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+              createdAt: { gte: thirtyDaysAgo },
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              status: FeedbackStatus.RESOLVED,
+              resolvedAt: { gte: thirtyDaysAgo },
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              recoveryOutcome: RecoveryOutcome.SAVED,
+              resolvedAt: { gte: thirtyDaysAgo },
+            },
+          }),
+          prisma.validationEvent.count({
+            where: {
+              businessId: workspace.businessId,
+              event: "review_redirect_opened",
+              createdAt: { gte: thirtyDaysAgo },
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              status: { in: [FeedbackStatus.NEW, FeedbackStatus.IN_PROGRESS] },
+            },
+          }),
+        ]),
+      [0, 0, 0, 0, 0, 0],
+    );
 
   const savedRate = resolvedCases === 0 ? 0 : Math.round((recoveredCases / resolvedCases) * 100);
 
