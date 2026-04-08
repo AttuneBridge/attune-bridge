@@ -7,6 +7,7 @@ import {
   Sentiment,
   SubscriptionStatus,
 } from "@prisma/client";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OwnerFeatureRequestPanel } from "@/components/dashboard/owner-feature-request-panel";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
@@ -88,6 +89,13 @@ type DeadLetterItem = {
   status: string;
   reason: string;
   occurredAt: Date;
+};
+
+type OnboardingChecklistItem = {
+  label: string;
+  complete: boolean;
+  hint: string;
+  href: string;
 };
 
 function getStatusLabel(status: SubscriptionStatus) {
@@ -427,6 +435,101 @@ export default async function DashboardHomePage() {
   const roi7dDelta = getRoiDelta(roi7d, previousRoi7d);
   const roi30dDelta = getRoiDelta(roi30d, previousRoi30d);
 
+  const [
+    primaryLocation,
+    feedbackSubmittedCount,
+    feedbackResolvedCount,
+    followUpScheduledCount,
+    schedulerOffersSentCount,
+    loyaltyMessagesSentCount,
+    missedCallSentCount,
+  ] = await Promise.all([
+    prisma.location.findUnique({
+      where: { slug: workspace.locationSlug },
+      select: {
+        id: true,
+        googleReviewLink: true,
+        yelpReviewLink: true,
+      },
+    }),
+    prisma.feedback.count({
+      where: {
+        location: { businessId: workspace.businessId },
+      },
+    }),
+    prisma.feedback.count({
+      where: {
+        location: { businessId: workspace.businessId },
+        status: FeedbackStatus.RESOLVED,
+      },
+    }),
+    prisma.feedback.count({
+      where: {
+        location: { businessId: workspace.businessId },
+        nextFollowUpAt: { not: null },
+      },
+    }),
+    prisma.schedulerOffer.count({
+      where: {
+        businessId: workspace.businessId,
+        status: { in: ["SENT", "CLAIMED", "CLOSED", "EXPIRED"] },
+      },
+    }),
+    prisma.loyaltyMessage.count({
+      where: {
+        businessId: workspace.businessId,
+        status: "SENT",
+      },
+    }),
+    prisma.missedCallEvent.count({
+      where: {
+        businessId: workspace.businessId,
+        smsStatus: "SENT",
+      },
+    }),
+  ]);
+
+  const hasPublicReviewLink = Boolean(primaryLocation?.googleReviewLink || primaryLocation?.yelpReviewLink);
+  const hasOutboundActivity = schedulerOffersSentCount > 0 || loyaltyMessagesSentCount > 0 || missedCallSentCount > 0;
+
+  const onboardingChecklist: OnboardingChecklistItem[] = [
+    {
+      label: "Configure at least one public review link",
+      complete: hasPublicReviewLink,
+      hint: hasPublicReviewLink ? "Review links are live." : "Add Google or Yelp review link for redirect tracking.",
+      href: "/dashboard/reviews/qr",
+    },
+    {
+      label: "Capture first private feedback",
+      complete: feedbackSubmittedCount > 0,
+      hint: feedbackSubmittedCount > 0 ? `${feedbackSubmittedCount} feedback submissions captured.` : "Share your QR or feedback link to start intake.",
+      href: "/dashboard/reviews/feedback",
+    },
+    {
+      label: "Resolve first private case",
+      complete: feedbackResolvedCount > 0,
+      hint: feedbackResolvedCount > 0 ? `${feedbackResolvedCount} cases marked resolved.` : "Use outcome tracking to close your first case.",
+      href: "/dashboard/reviews/feedback",
+    },
+    {
+      label: "Schedule at least one follow-up reminder",
+      complete: followUpScheduledCount > 0,
+      hint: followUpScheduledCount > 0 ? `${followUpScheduledCount} cases have follow-up reminders.` : "Set 24h/48h reminders on unresolved cases.",
+      href: "/dashboard/reviews/feedback",
+    },
+    {
+      label: "Trigger first outbound recovery workflow",
+      complete: hasOutboundActivity,
+      hint: hasOutboundActivity
+        ? `Scheduler sent: ${schedulerOffersSentCount}, Loyalty sent: ${loyaltyMessagesSentCount}, Missed-call sent: ${missedCallSentCount}`
+        : "Send a scheduler offer, loyalty message, or missed-call auto-reply.",
+      href: "/dashboard/scheduler",
+    },
+  ];
+
+  const completedOnboardingItems = onboardingChecklist.filter((item) => item.complete).length;
+  const onboardingProgressPercent = Math.round((completedOnboardingItems / onboardingChecklist.length) * 100);
+
   const instrumentationEvents = [
     validationEvent.feedbackSubmitted,
     validationEvent.reviewRedirectOpened,
@@ -763,6 +866,71 @@ export default async function DashboardHomePage() {
             Turn on Missed Call Text Back, Last-Minute Scheduler, and Loyalty Builder as your workflow expands.
           </p>
           <ModuleSubscriptionForm businessId={workspace.businessId} moduleSubscriptions={moduleSubscriptionsForForm} />
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Onboarding hardening</p>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Activation checklist + first value path</h2>
+            <p className="text-sm text-slate-700">
+              Complete setup milestones to shorten time-to-first-value for your owner workspace.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-900">
+                Checklist progress: {completedOnboardingItems}/{onboardingChecklist.length}
+              </p>
+              <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
+                {onboardingProgressPercent}% complete
+              </span>
+            </div>
+            <div className="mt-3 h-2 rounded-full bg-slate-200">
+              <div
+                className="h-2 rounded-full bg-slate-700 transition-all"
+                style={{ width: `${Math.max(onboardingProgressPercent, 4)}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {onboardingChecklist.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="block rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:bg-white"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      item.complete
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-amber-200 bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {item.complete ? "Complete" : "Pending"}
+                  </span>
+                  <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                </div>
+                <p className="mt-1 text-xs text-slate-600">{item.hint}</p>
+              </Link>
+            ))}
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-3">
+            <Link href="/dashboard/reviews/feedback" className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 hover:bg-slate-50">
+              <span className="font-medium text-slate-900">Step 1:</span> Capture first feedback
+            </Link>
+            <Link href="/dashboard/reviews/feedback" className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 hover:bg-slate-50">
+              <span className="font-medium text-slate-900">Step 2:</span> Resolve first case
+            </Link>
+            <Link href="/dashboard/scheduler" className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 hover:bg-slate-50">
+              <span className="font-medium text-slate-900">Step 3:</span> Trigger first outbound flow
+            </Link>
+          </div>
         </Card>
       </section>
 
