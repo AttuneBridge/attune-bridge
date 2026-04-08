@@ -4,6 +4,15 @@ import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
 
+async function withFallback<T>(label: string, action: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    console.error(`[dashboard-home] ${label} failed`, error);
+    return fallback;
+  }
+}
+
 function formatDate(value: Date | null) {
   if (!value) {
     return "Not set";
@@ -31,62 +40,83 @@ export default async function DashboardHomePage() {
   const workspace = await getOwnerWorkspaceContextOrRedirect();
   const now = new Date();
 
+  type HomeMetricsTuple = [
+    {
+      name: string;
+      subscriptionStatus: SubscriptionStatus;
+      trialEndsAt: Date | null;
+      paidThrough: Date | null;
+      autoRenewEnabled: boolean;
+    } | null,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+
   const [business, openCases, overdueFollowUps, reaskReady, pendingLoyalty, pendingScheduler, pendingMissedCall] =
-    await Promise.all([
-      prisma.business.findUnique({
-        where: { id: workspace.businessId },
-        select: {
-          name: true,
-          subscriptionStatus: true,
-          trialEndsAt: true,
-          paidThrough: true,
-          autoRenewEnabled: true,
-        },
-      }),
-      prisma.feedback.count({
-        where: {
-          location: { businessId: workspace.businessId },
-          status: { in: [FeedbackStatus.NEW, FeedbackStatus.IN_PROGRESS] },
-        },
-      }),
-      prisma.feedback.count({
-        where: {
-          location: { businessId: workspace.businessId },
-          status: { in: [FeedbackStatus.NEW, FeedbackStatus.IN_PROGRESS] },
-          nextFollowUpAt: {
-            lte: now,
-          },
-        },
-      }),
-      prisma.feedback.count({
-        where: {
-          location: { businessId: workspace.businessId },
-          status: FeedbackStatus.RESOLVED,
-          recoveryOutcome: "SAVED",
-          resolvedAt: {
-            lte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-          },
-        },
-      }),
-      prisma.loyaltyMessage.count({
-        where: {
-          businessId: workspace.businessId,
-          status: "PENDING",
-        },
-      }),
-      prisma.schedulerOfferRecipient.count({
-        where: {
-          offer: { businessId: workspace.businessId },
-          smsStatus: "PENDING",
-        },
-      }),
-      prisma.missedCallEvent.count({
-        where: {
-          businessId: workspace.businessId,
-          smsStatus: "PENDING",
-        },
-      }),
-    ]);
+    await withFallback<HomeMetricsTuple>(
+      "home-metrics",
+      () =>
+        Promise.all([
+          prisma.business.findUnique({
+            where: { id: workspace.businessId },
+            select: {
+              name: true,
+              subscriptionStatus: true,
+              trialEndsAt: true,
+              paidThrough: true,
+              autoRenewEnabled: true,
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              status: { in: [FeedbackStatus.NEW, FeedbackStatus.IN_PROGRESS] },
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              status: { in: [FeedbackStatus.NEW, FeedbackStatus.IN_PROGRESS] },
+              nextFollowUpAt: {
+                lte: now,
+              },
+            },
+          }),
+          prisma.feedback.count({
+            where: {
+              location: { businessId: workspace.businessId },
+              status: FeedbackStatus.RESOLVED,
+              recoveryOutcome: "SAVED",
+              resolvedAt: {
+                lte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+              },
+            },
+          }),
+          prisma.loyaltyMessage.count({
+            where: {
+              businessId: workspace.businessId,
+              status: "PENDING",
+            },
+          }),
+          prisma.schedulerOfferRecipient.count({
+            where: {
+              offer: { businessId: workspace.businessId },
+              smsStatus: "PENDING",
+            },
+          }),
+          prisma.missedCallEvent.count({
+            where: {
+              businessId: workspace.businessId,
+              smsStatus: "PENDING",
+            },
+          }),
+        ]),
+      [null, 0, 0, 0, 0, 0, 0],
+    );
 
   const pendingQueueTotal = pendingLoyalty + pendingScheduler + pendingMissedCall;
 
