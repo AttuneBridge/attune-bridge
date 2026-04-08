@@ -10,6 +10,7 @@ export const validationEvent = {
   reviewRedirectOpened: "review_redirect_opened",
   reviewsCaseStatusUpdated: "reviews_case_status_updated",
   reviewsCaseAssigned: "reviews_case_assigned",
+  reviewsRecoveryPlaybookApplied: "reviews_recovery_playbook_applied",
   reviewsRecoveryOutcomeUpdated: "reviews_recovery_outcome_updated",
   reviewsFollowUpReminderSet: "reviews_follow_up_reminder_set",
   reviewsFollowUpReminderCleared: "reviews_follow_up_reminder_cleared",

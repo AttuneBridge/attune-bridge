@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 import { FeedbackAssignmentControls } from "@/components/forms/feedback-assignment-controls";
 import { FeedbackNotesEditor } from "@/components/forms/feedback-notes-editor";
+import { FeedbackPlaybookTemplates } from "@/components/forms/feedback-playbook-templates";
 import { FeedbackStatusControls } from "@/components/forms/feedback-status-controls";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
@@ -106,6 +107,8 @@ function formatTimelineEvent(eventName: string, metadata: Record<string, unknown
       return "Follow-up reminder cleared";
     case "reviews_case_assigned":
       return metadata?.nextAssignedMembershipId ? "Case assigned" : "Case unassigned";
+    case "reviews_recovery_playbook_applied":
+      return `Recovery playbook applied: ${String(metadata?.template ?? "(unknown)")}`;
     case "reviews_internal_notes_updated":
       return metadata?.hasNotes ? "Internal notes updated" : "Internal notes cleared";
     default:
@@ -177,6 +180,7 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
           validationEvent.reviewsFollowUpReminderSet,
           validationEvent.reviewsFollowUpReminderCleared,
           validationEvent.reviewsCaseAssigned,
+          validationEvent.reviewsRecoveryPlaybookApplied,
           validationEvent.reviewsInternalNotesUpdated,
         ],
       },
@@ -277,6 +281,14 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Recovery Playbook Templates</p>
+              <p className="text-sm text-slate-700">
+                Apply a guided follow-up template to set reminder timing and append standardized recovery notes.
+              </p>
+              <FeedbackPlaybookTemplates feedbackId={feedback.id} sentiment={feedback.sentiment} />
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Case Assignment</p>
               <p className="text-sm text-slate-700">
                 Current assignee: {feedback.assignedMembership?.user.email ?? "Unassigned"}
@@ -288,7 +300,7 @@ export default async function DashboardFeedbackDetailPage({ params }: FeedbackDe
               />
             </div>
 
-            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 md:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Internal Notes</p>
               <FeedbackNotesEditor feedbackId={feedback.id} initialNotes={feedback.internalNotes} />
             </div>

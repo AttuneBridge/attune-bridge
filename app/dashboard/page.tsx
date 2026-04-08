@@ -182,6 +182,7 @@ function buildModuleFunnels(countMap: Map<string, number>): ModuleFunnel[] {
         { label: "Review redirects opened", eventName: validationEvent.reviewRedirectOpened, count: getEventCount(countMap, validationEvent.reviewRedirectOpened) },
         { label: "Case status updates", eventName: validationEvent.reviewsCaseStatusUpdated, count: getEventCount(countMap, validationEvent.reviewsCaseStatusUpdated) },
         { label: "Recovery outcome updates", eventName: validationEvent.reviewsRecoveryOutcomeUpdated, count: getEventCount(countMap, validationEvent.reviewsRecoveryOutcomeUpdated) },
+        { label: "Recovery playbooks applied", eventName: validationEvent.reviewsRecoveryPlaybookApplied, count: getEventCount(countMap, validationEvent.reviewsRecoveryPlaybookApplied) },
       ],
     },
     {
@@ -534,6 +535,7 @@ export default async function DashboardHomePage() {
     validationEvent.feedbackSubmitted,
     validationEvent.reviewRedirectOpened,
     validationEvent.reviewsCaseStatusUpdated,
+    validationEvent.reviewsRecoveryPlaybookApplied,
     validationEvent.reviewsRecoveryOutcomeUpdated,
     validationEvent.schedulerContactAdded,
     validationEvent.schedulerOfferSent,
