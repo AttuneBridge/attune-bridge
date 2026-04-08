@@ -120,6 +120,18 @@ export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspa
               {MODULE_LABELS[tab.module]}
             </Link>
           ))}
+
+          <Link
+            href="/dashboard/contacts"
+            aria-current={pathname === "/dashboard/contacts" ? "page" : undefined}
+            className={
+              pathname === "/dashboard/contacts"
+                ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
+                : "text-app-muted hover:text-app-text"
+            }
+          >
+            Contacts
+          </Link>
         </nav>
       </div>
     </div>
