@@ -97,6 +97,15 @@ type PricingExperimentSummary = {
   cancelReasons: Array<{ reason: string; count: number }>;
 };
 
+async function withFallback<T>(label: string, action: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    console.error(`[dashboard] ${label} failed`, error);
+    return fallback;
+  }
+}
+
 type OnboardingChecklistItem = {
   label: string;
   complete: boolean;
@@ -229,70 +238,75 @@ async function getRoiWindowMetrics(businessId: string, start: Date, end: Date): 
     reviewRedirects,
     loyaltyBookingConversions,
     loyaltyReviewConversions,
-  ] = await prisma.$transaction([
-    prisma.feedback.count({
-      where: {
-        location: { businessId },
-        createdAt: dateRange,
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId },
-        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
-        createdAt: dateRange,
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId },
-        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
-        status: FeedbackStatus.RESOLVED,
-        resolvedAt: dateRange,
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId },
-        sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
-        recoveryOutcome: RecoveryOutcome.SAVED,
-        resolvedAt: dateRange,
-      },
-    }),
-    prisma.schedulerOffer.count({
-      where: {
-        businessId,
-        claimedAt: dateRange,
-      },
-    }),
-    prisma.missedCallEvent.count({
-      where: {
-        businessId,
-        replyForwardedAt: dateRange,
-      },
-    }),
-    prisma.validationEvent.count({
-      where: {
-        businessId,
-        event: validationEvent.reviewRedirectOpened,
-        createdAt: dateRange,
-      },
-    }),
-    prisma.loyaltyConversion.count({
-      where: {
-        businessId,
-        type: LoyaltyConversionType.BOOKING,
-        convertedAt: dateRange,
-      },
-    }),
-    prisma.loyaltyConversion.count({
-      where: {
-        businessId,
-        type: LoyaltyConversionType.REVIEW,
-        convertedAt: dateRange,
-      },
-    }),
-  ]);
+  ] = await withFallback(
+    "roi-window-metrics",
+    () =>
+      prisma.$transaction([
+        prisma.feedback.count({
+          where: {
+            location: { businessId },
+            createdAt: dateRange,
+          },
+        }),
+        prisma.feedback.count({
+          where: {
+            location: { businessId },
+            sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+            createdAt: dateRange,
+          },
+        }),
+        prisma.feedback.count({
+          where: {
+            location: { businessId },
+            sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+            status: FeedbackStatus.RESOLVED,
+            resolvedAt: dateRange,
+          },
+        }),
+        prisma.feedback.count({
+          where: {
+            location: { businessId },
+            sentiment: { in: [Sentiment.NEUTRAL, Sentiment.NEGATIVE] },
+            recoveryOutcome: RecoveryOutcome.SAVED,
+            resolvedAt: dateRange,
+          },
+        }),
+        prisma.schedulerOffer.count({
+          where: {
+            businessId,
+            claimedAt: dateRange,
+          },
+        }),
+        prisma.missedCallEvent.count({
+          where: {
+            businessId,
+            replyForwardedAt: dateRange,
+          },
+        }),
+        prisma.validationEvent.count({
+          where: {
+            businessId,
+            event: validationEvent.reviewRedirectOpened,
+            createdAt: dateRange,
+          },
+        }),
+        prisma.loyaltyConversion.count({
+          where: {
+            businessId,
+            type: LoyaltyConversionType.BOOKING,
+            convertedAt: dateRange,
+          },
+        }),
+        prisma.loyaltyConversion.count({
+          where: {
+            businessId,
+            type: LoyaltyConversionType.REVIEW,
+            convertedAt: dateRange,
+          },
+        }),
+      ]),
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+  );
 
   return {
     feedbackCollected,
@@ -461,51 +475,56 @@ export default async function DashboardHomePage() {
     schedulerOffersSentCount,
     loyaltyMessagesSentCount,
     missedCallSentCount,
-  ] = await Promise.all([
-    prisma.location.findUnique({
-      where: { slug: workspace.locationSlug },
-      select: {
-        id: true,
-        googleReviewLink: true,
-        yelpReviewLink: true,
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        status: FeedbackStatus.RESOLVED,
-      },
-    }),
-    prisma.feedback.count({
-      where: {
-        location: { businessId: workspace.businessId },
-        nextFollowUpAt: { not: null },
-      },
-    }),
-    prisma.schedulerOffer.count({
-      where: {
-        businessId: workspace.businessId,
-        status: { in: ["SENT", "CLAIMED", "CLOSED", "EXPIRED"] },
-      },
-    }),
-    prisma.loyaltyMessage.count({
-      where: {
-        businessId: workspace.businessId,
-        status: "SENT",
-      },
-    }),
-    prisma.missedCallEvent.count({
-      where: {
-        businessId: workspace.businessId,
-        smsStatus: "SENT",
-      },
-    }),
-  ]);
+  ] = await withFallback(
+    "onboarding-metrics",
+    () =>
+      Promise.all([
+        prisma.location.findUnique({
+          where: { slug: workspace.locationSlug },
+          select: {
+            id: true,
+            googleReviewLink: true,
+            yelpReviewLink: true,
+          },
+        }),
+        prisma.feedback.count({
+          where: {
+            location: { businessId: workspace.businessId },
+          },
+        }),
+        prisma.feedback.count({
+          where: {
+            location: { businessId: workspace.businessId },
+            status: FeedbackStatus.RESOLVED,
+          },
+        }),
+        prisma.feedback.count({
+          where: {
+            location: { businessId: workspace.businessId },
+            nextFollowUpAt: { not: null },
+          },
+        }),
+        prisma.schedulerOffer.count({
+          where: {
+            businessId: workspace.businessId,
+            status: { in: ["SENT", "CLAIMED", "CLOSED", "EXPIRED"] },
+          },
+        }),
+        prisma.loyaltyMessage.count({
+          where: {
+            businessId: workspace.businessId,
+            status: "SENT",
+          },
+        }),
+        prisma.missedCallEvent.count({
+          where: {
+            businessId: workspace.businessId,
+            smsStatus: "SENT",
+          },
+        }),
+      ]),
+    [null, 0, 0, 0, 0, 0, 0],
+  );
 
   const hasPublicReviewLink = Boolean(primaryLocation?.googleReviewLink || primaryLocation?.yelpReviewLink);
   const hasOutboundActivity = schedulerOffersSentCount > 0 || loyaltyMessagesSentCount > 0 || missedCallSentCount > 0;
@@ -564,17 +583,22 @@ export default async function DashboardHomePage() {
     validationEvent.missedCallReplyForwarded,
   ] as const;
 
-  const instrumentationGrouped = await prisma.validationEvent.groupBy({
-    by: ["event"],
-    where: {
-      businessId: workspace.businessId,
-      createdAt: { gte: period7Start, lt: nowDate },
-      event: { in: [...instrumentationEvents] },
-    },
-    _count: {
-      _all: true,
-    },
-  });
+  const instrumentationGrouped = await withFallback(
+    "instrumentation-grouped",
+    () =>
+      prisma.validationEvent.groupBy({
+        by: ["event"],
+        where: {
+          businessId: workspace.businessId,
+          createdAt: { gte: period7Start, lt: nowDate },
+          event: { in: [...instrumentationEvents] },
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+    [],
+  );
 
   const instrumentationCountMap = new Map<string, number>(
     instrumentationGrouped.map((entry) => [entry.event, entry._count._all]),
@@ -593,8 +617,11 @@ export default async function DashboardHomePage() {
     recentSchedulerFailures,
     recentLoyaltyFailures,
     recentMissedCallFailures,
-  ] = await Promise.all([
-    prisma.notificationEvent.groupBy({
+  ] = await withFallback(
+    "reliability-metrics",
+    () =>
+      Promise.all([
+        prisma.notificationEvent.groupBy({
       by: ["status"],
       where: {
         businessId: workspace.businessId,
@@ -694,7 +721,7 @@ export default async function DashboardHomePage() {
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
-    prisma.missedCallEvent.findMany({
+        prisma.missedCallEvent.findMany({
       where: {
         businessId: workspace.businessId,
         createdAt: { gte: period7Start, lt: nowDate },
@@ -708,8 +735,10 @@ export default async function DashboardHomePage() {
       },
       orderBy: { createdAt: "desc" },
       take: 8,
-    }),
-  ]);
+        }),
+      ]),
+    [[], [], [], [], 0, 0, 0, [], [], [], []],
+  );
 
   const notificationCountMap = new Map<string, number>(
     notificationStatusCounts.map((entry) => [entry.status, entry._count._all]),
@@ -807,15 +836,18 @@ export default async function DashboardHomePage() {
     .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
     .slice(0, 12);
 
-  const [winbackAccepted, cancelReasonEvents] = await Promise.all([
-    prisma.validationEvent.count({
+  const [winbackAccepted, cancelReasonEvents] = await withFallback(
+    "pricing-experiments",
+    () =>
+      Promise.all([
+        prisma.validationEvent.count({
       where: {
         businessId: workspace.businessId,
         event: validationEvent.subscriptionWinbackAccepted,
         createdAt: { gte: period30Start, lt: nowDate },
       },
-    }),
-    prisma.validationEvent.findMany({
+        }),
+        prisma.validationEvent.findMany({
       where: {
         businessId: workspace.businessId,
         event: validationEvent.subscriptionCancelReasonCaptured,
@@ -825,8 +857,10 @@ export default async function DashboardHomePage() {
         metadata: true,
       },
       take: 200,
-    }),
-  ]);
+        }),
+      ]),
+    [0, []],
+  );
 
   const cancelReasonCountMap = new Map<string, number>();
   for (const event of cancelReasonEvents) {
