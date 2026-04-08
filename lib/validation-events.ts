@@ -17,6 +17,8 @@ export const validationEvent = {
   reviewsInternalNotesUpdated: "reviews_internal_notes_updated",
   subscriptionStarted: "subscription_started",
   subscriptionCanceled: "subscription_canceled",
+  subscriptionWinbackAccepted: "subscription_winback_accepted",
+  subscriptionCancelReasonCaptured: "subscription_cancel_reason_captured",
   moduleSubscriptionUpdated: "module_subscription_updated",
   ownerFeatureRequestSubmitted: "owner_feature_request_submitted",
   ownerAccessLinkIssued: "owner_access_link_issued",
