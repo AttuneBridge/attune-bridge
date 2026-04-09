@@ -140,7 +140,7 @@ export default async function DashboardFeedbackInboxPage() {
 
         <div className="flex flex-wrap gap-3">
           <Link
-            href={`/feedback/${workspace.locationSlug}?returnTo=/dashboard/reviews/feedback`}
+            href={`/feedback/${workspace.locationSlug}?returnTo=/dashboard/tools/reviews/feedback`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-100"
@@ -148,7 +148,7 @@ export default async function DashboardFeedbackInboxPage() {
             Preview customer form
           </Link>
           <Link
-            href="/dashboard/reviews/qr"
+            href="/dashboard/tools/reviews/qr"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-100"

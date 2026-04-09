@@ -25,5 +25,5 @@ export default async function DashboardReviewsPage() {
     );
   }
 
-  redirect("/dashboard/reviews/feedback");
+  redirect("/dashboard/tools/reviews/feedback");
 }

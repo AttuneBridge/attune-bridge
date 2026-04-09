@@ -53,12 +53,22 @@ function getModuleDotClass(module: DashboardModule) {
 export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspaceNavProps) {
   const pathname = usePathname();
   const isFeedbackRoute =
-    pathname.startsWith("/dashboard/reviews") || pathname === `/feedback/${locationSlug}`;
-  const moduleTabs = enabledModules.filter((module) => module !== "REVIEWS").map((module) => {
+    pathname.startsWith("/dashboard/reviews") ||
+    pathname.startsWith("/dashboard/tools/reviews") ||
+    pathname === `/feedback/${locationSlug}`;
+
+  const orderedModules: DashboardModule[] = [
+    "MISSED_CALL_TEXTBACK",
+    "SCHEDULER",
+    "FEEDBACK",
+    "LOYALTY",
+  ];
+
+  const moduleTabs = orderedModules.filter((module) => enabledModules.includes(module)).map((module) => {
     if (module === "FEEDBACK") {
       return {
         module,
-        href: "/dashboard/reviews",
+        href: "/dashboard/tools/reviews",
         active: isFeedbackRoute,
       };
     }
@@ -66,23 +76,23 @@ export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspa
     if (module === "SCHEDULER") {
       return {
         module,
-        href: "/dashboard/scheduler",
-        active: pathname === "/dashboard/scheduler",
+        href: "/dashboard/tools/scheduler",
+        active: pathname === "/dashboard/tools/scheduler",
       };
     }
 
     if (module === "MISSED_CALL_TEXTBACK") {
       return {
         module,
-        href: "/dashboard/textback",
-        active: pathname === "/dashboard/textback" || pathname.startsWith("/dashboard/textback/"),
+        href: "/dashboard/tools/textback",
+        active: pathname === "/dashboard/tools/textback" || pathname.startsWith("/dashboard/tools/textback/"),
       };
     }
 
     return {
       module,
-      href: "/dashboard/loyalty",
-      active: pathname === "/dashboard/loyalty",
+      href: "/dashboard/tools/loyalty",
+      active: pathname === "/dashboard/tools/loyalty",
     };
   });
 
@@ -122,10 +132,10 @@ export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspa
           ))}
 
           <Link
-            href="/dashboard/contacts"
-            aria-current={pathname === "/dashboard/contacts" ? "page" : undefined}
+            href="/dashboard/tools/contacts"
+            aria-current={pathname === "/dashboard/tools/contacts" ? "page" : undefined}
             className={
-              pathname === "/dashboard/contacts"
+              pathname === "/dashboard/tools/contacts"
                 ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
                 : "text-app-muted hover:text-app-text"
             }
