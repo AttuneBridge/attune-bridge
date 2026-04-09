@@ -242,7 +242,9 @@ AttuneBridge uses a two-branch release flow:
 ### Vercel build behavior
 
 - Vercel uses `pnpm run vercel-build` (set in `vercel.json`).
-- `vercel-build` runs `prisma migrate deploy` before `next build` to reduce schema drift during deploys.
+- `vercel-build` runs `scripts/vercel-build.sh`.
+- By default it skips Prisma migrations for faster, more stable deploys.
+- Set `VERCEL_RUN_MIGRATIONS=true` in an environment when you explicitly want `prisma migrate deploy` during build.
   - Production branch: `main`
   - Purpose: live production environment
 
