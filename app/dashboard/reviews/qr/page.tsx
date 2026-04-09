@@ -29,7 +29,7 @@ export default async function DashboardReviewsQrPage() {
   });
 
   if (!location || location.business.id !== workspace.businessId) {
-    redirectToDashboardAccess("/dashboard/reviews/qr");
+    redirectToDashboardAccess("/dashboard/tools/reviews/qr");
   }
 
   const publicFeedbackUrl = `${getAppUrl()}/feedback/${location.slug}`;
@@ -50,7 +50,7 @@ export default async function DashboardReviewsQrPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Reviews</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Location QR code</h1>
           <p className="text-sm text-slate-700">Share this QR code so customers can quickly leave a private review.</p>
-          <Link href="/dashboard/reviews/feedback" className="inline-flex text-sm font-medium text-slate-900 underline">
+          <Link href="/dashboard/tools/reviews/feedback" className="inline-flex text-sm font-medium text-slate-900 underline">
             Back to feedback inbox
           </Link>
           <div className="pt-1 print:hidden">

@@ -51,17 +51,17 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
   const isToolsRoute = pathname === "/dashboard/tools" || pathname.startsWith("/dashboard/tools/");
 
   const toolsTabs = [
-    ...(enabledModules.includes("REVIEWS")
-      ? [{ module: "REVIEWS" as const, href: "/dashboard/tools/reviews" }]
+    ...(enabledModules.includes("MISSED_CALL_TEXTBACK")
+      ? [{ module: "MISSED_CALL_TEXTBACK" as const, href: "/dashboard/tools/textback" }]
       : []),
     ...(enabledModules.includes("SCHEDULER")
       ? [{ module: "SCHEDULER" as const, href: "/dashboard/tools/scheduler" }]
       : []),
+    ...(enabledModules.includes("REVIEWS")
+      ? [{ module: "REVIEWS" as const, href: "/dashboard/tools/reviews" }]
+      : []),
     ...(enabledModules.includes("LOYALTY")
       ? [{ module: "LOYALTY" as const, href: "/dashboard/tools/loyalty" }]
-      : []),
-    ...(enabledModules.includes("MISSED_CALL_TEXTBACK")
-      ? [{ module: "MISSED_CALL_TEXTBACK" as const, href: "/dashboard/tools/textback" }]
       : []),
     { module: null, href: "/dashboard/tools/contacts", label: "Contacts" },
   ];

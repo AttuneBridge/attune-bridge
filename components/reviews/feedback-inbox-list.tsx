@@ -700,7 +700,7 @@ export function FeedbackInboxList({
 
               <div className="mt-3">
                 <Link
-                  href={`/dashboard/reviews/feedback/${entry.id}`}
+                  href={`/dashboard/tools/reviews/feedback/${entry.id}`}
                   className="text-xs font-medium text-slate-900 underline underline-offset-2"
                 >
                   View full feedback details
