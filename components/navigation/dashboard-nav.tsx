@@ -49,6 +49,7 @@ function getModuleDotClass(module: DashboardModule) {
 export function DashboardNav({ enabledModules }: DashboardNavProps) {
   const pathname = usePathname();
   const isToolsRoute = pathname === "/dashboard/tools" || pathname.startsWith("/dashboard/tools/");
+  const isSettingsRoute = pathname === "/dashboard/settings" || pathname.startsWith("/dashboard/settings/");
 
   const toolsTabs = [
     ...(enabledModules.includes("MISSED_CALL_TEXTBACK")
@@ -63,7 +64,11 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
     ...(enabledModules.includes("LOYALTY")
       ? [{ module: "LOYALTY" as const, href: "/dashboard/tools/loyalty" }]
       : []),
-    { module: null, href: "/dashboard/tools/contacts", label: "Contacts" },
+  ];
+
+  const settingsTabs = [
+    { href: "/dashboard/settings", label: "Billing & Modules" },
+    { href: "/dashboard/settings/contacts", label: "Contacts" },
   ];
 
   return (
@@ -81,7 +86,7 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
                   : "text-app-muted hover:text-app-text"
               }
             >
-              Home
+              Dashboard
             </Link>
 
             <Link
@@ -125,25 +130,6 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
         {isToolsRoute ? (
           <nav className="mt-2 flex flex-wrap items-center gap-3 border-t border-app-surface-muted pt-2">
             {toolsTabs.map((tab) => {
-              if (tab.module === null) {
-                const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-
-                return (
-                  <Link
-                    key={tab.href}
-                    href={tab.href}
-                    aria-current={active ? "page" : undefined}
-                    className={
-                      active
-                        ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
-                        : "text-app-muted hover:text-app-text"
-                    }
-                  >
-                    {tab.label}
-                  </Link>
-                );
-              }
-
               const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
               return (
@@ -159,6 +145,27 @@ export function DashboardNav({ enabledModules }: DashboardNavProps) {
                 >
                   <span className={`mr-1.5 inline-block size-2 rounded-full ${getModuleDotClass(tab.module)}`} aria-hidden />
                   {MODULE_LABELS[tab.module]}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : isSettingsRoute ? (
+          <nav className="mt-2 flex flex-wrap items-center gap-3 border-t border-app-surface-muted pt-2">
+            {settingsTabs.map((tab) => {
+              const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  aria-current={active ? "page" : undefined}
+                  className={
+                    active
+                      ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
+                      : "text-app-muted hover:text-app-text"
+                  }
+                >
+                  {tab.label}
                 </Link>
               );
             })}

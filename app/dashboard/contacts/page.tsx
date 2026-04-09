@@ -40,10 +40,10 @@ export default async function DashboardContactsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Unified contacts and consent controls</h1>
             <Link
-              href="/dashboard"
+              href="/dashboard/settings"
               className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-100"
             >
-              Back to Dashboard
+              Back to Settings
             </Link>
           </div>
           <p className="text-sm text-slate-700">
