@@ -33,6 +33,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Ensure Prisma schema changes include migration
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_BASE_REF}" --depth=1
+          changed_files=$(git diff --name-only "origin/${GITHUB_BASE_REF}"...HEAD)
+
+          schema_changed=false
+          migration_changed=false
+
+          while IFS= read -r file; do
+            [ -z "${file}" ] && continue
+
+            if [ "${file}" = "prisma/schema.prisma" ]; then
+              schema_changed=true
+            fi
+
+            case "${file}" in
+              prisma/migrations/*)
+                migration_changed=true
+                ;;
+            esac
+          done <<< "${changed_files}"
+
+          if [ "${schema_changed}" = true ] && [ "${migration_changed}" = false ]; then
+            echo "prisma/schema.prisma changed without a migration in prisma/migrations/."
+            exit 1
+          fi
+
+          echo "Prisma schema/migration diff check passed."
+
       - name: Generate Prisma client
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public

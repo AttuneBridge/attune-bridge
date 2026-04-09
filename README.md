@@ -238,6 +238,8 @@ AttuneBridge uses a two-branch release flow:
   - Production branch: `dev`
   - Purpose: integration/staging environment
 - `attune-bridge-prod`
+  - Production branch: `main`
+  - Purpose: live production environment
 
 ### Vercel build behavior
 
@@ -245,8 +247,15 @@ AttuneBridge uses a two-branch release flow:
 - `vercel-build` runs `scripts/vercel-build.sh`.
 - By default it skips Prisma migrations for faster, more stable deploys.
 - Set `VERCEL_RUN_MIGRATIONS=true` in an environment when you explicitly want `prisma migrate deploy` during build.
-  - Production branch: `main`
-  - Purpose: live production environment
+
+### Prisma migration trigger
+
+- A migration is required when a PR changes `prisma/schema.prisma` and also includes a new folder under `prisma/migrations/`.
+- CI now enforces this for pull requests, so schema changes without migration files fail validation.
+- Deploy-time DB updates are run via the manual GitHub Action `Prisma Migrate Deploy`.
+- Configure repository secrets for that workflow:
+  - `DEV_DATABASE_URL`
+  - `PROD_DATABASE_URL`
 
 Preview deployments are intentionally skipped via `vercel.json` so only production-branch deploys run per project:
 
