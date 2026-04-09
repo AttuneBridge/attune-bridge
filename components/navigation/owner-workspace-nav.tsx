@@ -96,7 +96,7 @@ export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspa
     };
   });
 
-  const homeTab = { href: "/dashboard", label: "Home", active: pathname === "/dashboard" };
+  const homeTab = { href: "/dashboard", label: "Dashboard", active: pathname === "/dashboard" };
 
   return (
     <div className="border-b border-app-surface-muted bg-app-surface-muted">
@@ -132,10 +132,10 @@ export function OwnerWorkspaceNav({ locationSlug, enabledModules }: OwnerWorkspa
           ))}
 
           <Link
-            href="/dashboard/tools/contacts"
-            aria-current={pathname === "/dashboard/tools/contacts" ? "page" : undefined}
+            href="/dashboard/settings/contacts"
+            aria-current={pathname === "/dashboard/settings/contacts" ? "page" : undefined}
             className={
-              pathname === "/dashboard/tools/contacts"
+              pathname === "/dashboard/settings/contacts"
                 ? "rounded-full border border-app-surface-muted bg-app-surface px-2.5 py-1 text-app-text"
                 : "text-app-muted hover:text-app-text"
             }

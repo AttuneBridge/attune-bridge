@@ -16,10 +16,10 @@ export default async function DashboardToolsPage() {
 
         <section className="grid gap-3 md:grid-cols-2">
           <Card className="space-y-2">
-            <p className="text-sm font-semibold text-slate-900">Reviews Workspace</p>
-            <p className="text-sm text-slate-700">Feedback inbox, recovery outcomes, SLA queue, and review re-ask workflow.</p>
-            <Link href="/dashboard/tools/reviews" className="text-sm font-medium text-slate-900 underline">
-              Open Reviews tool
+            <p className="text-sm font-semibold text-slate-900">Missed Call Text Back</p>
+            <p className="text-sm text-slate-700">Configure auto-replies and handle missed-call response queue.</p>
+            <Link href="/dashboard/tools/textback" className="text-sm font-medium text-slate-900 underline">
+              Open Text Back tool
             </Link>
           </Card>
 
@@ -32,6 +32,14 @@ export default async function DashboardToolsPage() {
           </Card>
 
           <Card className="space-y-2">
+            <p className="text-sm font-semibold text-slate-900">Reviews Workspace</p>
+            <p className="text-sm text-slate-700">Feedback inbox, recovery outcomes, SLA queue, and review re-ask workflow.</p>
+            <Link href="/dashboard/tools/reviews" className="text-sm font-medium text-slate-900 underline">
+              Open Reviews tool
+            </Link>
+          </Card>
+
+          <Card className="space-y-2">
             <p className="text-sm font-semibold text-slate-900">Loyalty Workspace</p>
             <p className="text-sm text-slate-700">Manage offers, templates, playbooks, and loyalty recovery items.</p>
             <Link href="/dashboard/tools/loyalty" className="text-sm font-medium text-slate-900 underline">
@@ -39,19 +47,11 @@ export default async function DashboardToolsPage() {
             </Link>
           </Card>
 
-          <Card className="space-y-2">
-            <p className="text-sm font-semibold text-slate-900">Missed Call Text Back</p>
-            <p className="text-sm text-slate-700">Configure auto-replies and handle missed-call response queue.</p>
-            <Link href="/dashboard/tools/textback" className="text-sm font-medium text-slate-900 underline">
-              Open Text Back tool
-            </Link>
-          </Card>
-
           <Card className="space-y-2 md:col-span-2">
-            <p className="text-sm font-semibold text-slate-900">Contacts Workspace</p>
-            <p className="text-sm text-slate-700">Sync cross-module contacts and manage consent/channel preferences.</p>
-            <Link href="/dashboard/tools/contacts" className="text-sm font-medium text-slate-900 underline">
-              Open Contacts tool
+            <p className="text-sm font-semibold text-slate-900">Need to manage contacts and consent?</p>
+            <p className="text-sm text-slate-700">Contacts are available under Settings so this tools area stays execution-focused.</p>
+            <Link href="/dashboard/settings/contacts" className="text-sm font-medium text-slate-900 underline">
+              Open Contacts in Settings
             </Link>
           </Card>
         </section>
