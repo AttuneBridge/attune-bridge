@@ -14,9 +14,7 @@ function sanitizeReturnTo(pathname: string | null | undefined) {
 
 export function redirectToDashboardAccess(pathname?: string): never {
   const safePath = sanitizeReturnTo(pathname);
-  const target = safePath
-    ? `/dashboard/access?returnTo=${encodeURIComponent(safePath)}`
-    : "/dashboard/access";
+  const target = safePath ? `/access?returnTo=${encodeURIComponent(safePath)}` : "/access";
 
   redirect(target);
 }

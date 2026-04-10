@@ -61,7 +61,7 @@ export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
         </form>
       ) : (
         <Link
-          href="/dashboard/access"
+          href="/access"
           aria-current={isOwnerAreaActive ? "page" : undefined}
           className={getLinkClass(isOwnerAreaActive)}
         >
