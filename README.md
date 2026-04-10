@@ -151,6 +151,7 @@ Auth migration commands:
 
 - `pnpm auth:backfill-owner-users:dry-run`: preview owner user + membership backfill changes.
 - `pnpm auth:backfill-owner-users`: create missing owner users and owner memberships from existing businesses.
+- `pnpm auth:link-clerk-user -- --email dev.superadmin@attunebridge.com --clerk-user-id user_xxx --business-email owner@democoffee.com --system-role SUPER_ADMIN`: link a Clerk user ID to a local user and optionally grant owner membership for a business.
 
 `pnpm env:push` skips empty source values by default so blank local values do not overwrite populated Vercel profile files.
 

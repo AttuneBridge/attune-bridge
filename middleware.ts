@@ -9,9 +9,24 @@ const hasClerkConfig =
   typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 0;
 
-const passthrough = (_request: NextRequest) => NextResponse.next();
+function rewriteLegacyDashboardAccess(request: NextRequest) {
+  if (request.nextUrl.pathname !== "/dashboard/access") {
+    return null;
+  }
 
-export default allowsClerkAuth() && hasClerkConfig ? clerkMiddleware() : passthrough;
+  const target = request.nextUrl.clone();
+  target.pathname = "/access";
+  return NextResponse.rewrite(target);
+}
+
+const passthrough = (request: NextRequest) => rewriteLegacyDashboardAccess(request) ?? NextResponse.next();
+
+const withClerk = clerkMiddleware((auth, request) => {
+  void auth;
+  return rewriteLegacyDashboardAccess(request) ?? NextResponse.next();
+});
+
+export default allowsClerkAuth() && hasClerkConfig ? withClerk : passthrough;
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|assets/).*)"],

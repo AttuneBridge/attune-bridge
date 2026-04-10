@@ -147,7 +147,7 @@ export default async function FeedbackPage({ params, searchParams }: FeedbackPag
           <p className="text-sm text-slate-600">Please contact the business directly for help.</p>
           <p className="text-xs text-slate-500">
             Business owner?{" "}
-            <Link href="/dashboard/access" className="font-medium text-slate-700 underline">
+            <Link href="/access" className="font-medium text-slate-700 underline">
               Open dashboard access
             </Link>
           </p>
