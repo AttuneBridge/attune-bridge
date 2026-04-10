@@ -12,6 +12,10 @@ export async function hasBusinessOwnerAccess(businessId: string) {
     return false;
   }
 
+  if (identity.systemRole === "SUPER_ADMIN" || identity.systemRole === "ADMIN") {
+    return true;
+  }
+
   const membership = await prisma.businessMembership.findUnique({
     where: {
       userId_businessId: {

@@ -34,15 +34,39 @@ export async function getOwnerWorkspaceContextOrRedirect() {
     },
   });
 
-  const location = membership?.business.locations[0];
+  const fallbackBusiness =
+    !membership && (identity.systemRole === "SUPER_ADMIN" || identity.systemRole === "ADMIN")
+      ? await prisma.business.findFirst({
+          select: {
+            id: true,
+            name: true,
+            locations: {
+              select: {
+                slug: true,
+                name: true,
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+              take: 1,
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        })
+      : null;
 
-  if (!membership || !location) {
+  const business = membership?.business ?? fallbackBusiness;
+  const location = business?.locations[0];
+
+  if (!business || !location) {
     redirectToDashboardAccess("/dashboard");
   }
 
   return {
-    businessId: membership.business.id,
-    businessName: membership.business.name,
+    businessId: business.id,
+    businessName: business.name,
     locationName: location.name,
     locationSlug: location.slug,
   };

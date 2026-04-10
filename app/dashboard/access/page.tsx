@@ -51,7 +51,15 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
       })
     : null;
 
-  if (identity && ownerMembership) {
+  const systemAdminWorkspace =
+    identity && (identity.systemRole === "SUPER_ADMIN" || identity.systemRole === "ADMIN")
+      ? await prisma.business.findFirst({
+          select: { id: true },
+          orderBy: { createdAt: "asc" },
+        })
+      : null;
+
+  if (identity && (ownerMembership || systemAdminWorkspace)) {
     redirect(returnTo);
   }
 
