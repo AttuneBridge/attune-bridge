@@ -67,6 +67,8 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
   const canUseClerkSignIn = hasClerkConfig();
   const authState = canUseClerkSignIn ? await auth() : null;
   const hasClerkSession = Boolean(authState?.userId);
+  const clerkSessionEmail =
+    typeof authState?.sessionClaims?.email === "string" ? authState.sessionClaims.email : null;
   const isSignedInWithoutOwnerAccess = Boolean(identity && !ownerMembership);
   const isSignedInButNotLinked = Boolean(hasClerkSession && !identity);
 
@@ -92,7 +94,13 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
           {isSignedInButNotLinked ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               Signed in with Clerk, but this user is not linked in the app database yet. Link the Clerk user ID to a user record,
-              then reload this page.
+              then reload this page. Current Clerk user ID: <code>{authState?.userId}</code>
+              {clerkSessionEmail ? (
+                <>
+                  {" "}
+                  Current Clerk email: <code>{clerkSessionEmail}</code>
+                </>
+              ) : null}
             </div>
           ) : null}
           {isDemoMode ? (
