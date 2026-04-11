@@ -328,7 +328,8 @@ To ensure Vercel deployments can be triggered from integration work:
 - For any `feature/`, `fix/`, `docs/`, or `chore/` branch pushed by an agent, the agent must create a GitHub PR into `dev` in the same session.
 - Do not stop after `git push` without opening the PR.
 - Include the PR URL in the final response.
-- If a previous PR for that branch was merged/closed and new commits are pushed, create a new PR from the branch into `dev`.
+- Never continue adding commits to a branch after its PR is merged or closed.
+- If more changes are needed after a merge/close, start a fresh branch from latest `dev`, move the new commits there (cherry-pick if needed), and open a new PR into `dev`.
 
 ### Promote to production
 
