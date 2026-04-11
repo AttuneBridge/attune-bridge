@@ -316,10 +316,19 @@ Use a two-branch deployment model:
 2. Create a branch: `git checkout -b feature/MM-DD-YYYY-contextual-name`
 3. Do the work with small, focused commits.
 4. Push branch: `git push -u origin HEAD`
-5. Open PR targeting `dev`.
+5. Open PR targeting `dev` immediately after the first push.
 6. Squash merge into `dev` after checks pass.
 7. Delete branch after merge.
 8. Pull latest `dev` before next unit of work.
+
+### Agent PR enforcement
+
+To ensure Vercel deployments can be triggered from integration work:
+
+- For any `feature/`, `fix/`, `docs/`, or `chore/` branch pushed by an agent, the agent must create a GitHub PR into `dev` in the same session.
+- Do not stop after `git push` without opening the PR.
+- Include the PR URL in the final response.
+- If a previous PR for that branch was merged/closed and new commits are pushed, create a new PR from the branch into `dev`.
 
 ### Promote to production
 
