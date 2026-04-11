@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { BusinessMembershipRole } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -64,7 +65,10 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
   }
 
   const canUseClerkSignIn = hasClerkConfig();
+  const authState = canUseClerkSignIn ? await auth() : null;
+  const hasClerkSession = Boolean(authState?.userId);
   const isSignedInWithoutOwnerAccess = Boolean(identity && !ownerMembership);
+  const isSignedInButNotLinked = Boolean(hasClerkSession && !identity);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
@@ -83,6 +87,12 @@ export default async function DashboardAccessPage({ searchParams }: DashboardAcc
           {isSignedInWithoutOwnerAccess ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               Signed in but no owner workspace is linked yet. Run the owner backfill or contact support.
+            </div>
+          ) : null}
+          {isSignedInButNotLinked ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              Signed in with Clerk, but this user is not linked in the app database yet. Link the Clerk user ID to a user record,
+              then reload this page.
             </div>
           ) : null}
           {isDemoMode ? (
