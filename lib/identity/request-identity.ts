@@ -109,7 +109,56 @@ export async function getRequestIdentity(): Promise<RequestIdentity | null> {
     },
   });
 
-  if (!user || !user.clerkUserId) {
+  if (!user) {
+    const sessionEmail =
+      typeof authState.sessionClaims?.email === "string"
+        ? authState.sessionClaims.email.trim().toLowerCase()
+        : "";
+
+    if (!sessionEmail) {
+      return null;
+    }
+
+    const fallbackUser = await prisma.user.findUnique({
+      where: { email: sessionEmail },
+      select: {
+        id: true,
+        clerkUserId: true,
+        email: true,
+        systemRole: true,
+      },
+    });
+
+    if (!fallbackUser) {
+      return null;
+    }
+
+    if (fallbackUser.clerkUserId && fallbackUser.clerkUserId !== authState.userId) {
+      return null;
+    }
+
+    const linkedUser = fallbackUser.clerkUserId
+      ? fallbackUser
+      : await prisma.user.update({
+          where: { id: fallbackUser.id },
+          data: { clerkUserId: authState.userId },
+          select: {
+            id: true,
+            clerkUserId: true,
+            email: true,
+            systemRole: true,
+          },
+        });
+
+    return {
+      userId: linkedUser.id,
+      clerkUserId: linkedUser.clerkUserId,
+      email: linkedUser.email,
+      systemRole: linkedUser.systemRole,
+    };
+  }
+
+  if (!user.clerkUserId) {
     return null;
   }
 
