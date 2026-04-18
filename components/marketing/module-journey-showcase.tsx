@@ -99,7 +99,18 @@ function ModuleMotif({ tone }: { tone: ModuleTone }) {
       <>
         <div className={`absolute -left-16 top-8 h-44 w-44 rounded-full bg-radial ${motif.orbPrimary}`} />
         <div className={`absolute right-8 top-2 h-28 w-28 rounded-full bg-radial ${motif.orbSecondary}`} />
-        <svg className="absolute right-12 bottom-8 h-20 w-28 opacity-65" viewBox="0 0 112 80" fill="none">
+        <svg className="absolute -left-8 top-18 h-40 w-40 opacity-40 md:opacity-55 lg:opacity-72" viewBox="0 0 160 160" fill="none">
+          <circle className={motif.lineStroke} cx="80" cy="80" r="10" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="20" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="30" strokeWidth="1" strokeDasharray="2 4" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="40" strokeWidth="1" strokeDasharray="3 5" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="50" strokeWidth="1" strokeDasharray="2 6" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="60" strokeWidth="1" strokeDasharray="2 7" />
+        </svg>
+        <svg className="absolute left-28 bottom-4 h-10 w-32 opacity-30 md:opacity-42 lg:opacity-60" viewBox="0 0 128 40" fill="none">
+          <path className={motif.lineStroke} d="M0 20c4-10 8-10 12 0s8 10 12 0 8-10 12 0 8 10 12 0 8-10 12 0 8 10 12 0 8-10 12 0 8 10 12 0" strokeWidth="1.1" />
+        </svg>
+        <svg className="absolute right-12 bottom-8 h-20 w-28 opacity-35 md:opacity-50 lg:opacity-68" viewBox="0 0 112 80" fill="none">
           <path className={motif.lineStroke} d="M8 64c20-16 32-24 48-24s28 8 48 24" strokeWidth="1.2" />
           <path className={motif.lineStroke} d="M8 48c16-12 28-18 48-18s32 6 48 18" strokeWidth="1" />
         </svg>
@@ -111,8 +122,19 @@ function ModuleMotif({ tone }: { tone: ModuleTone }) {
     return (
       <>
         <div className={`absolute -right-14 top-6 h-40 w-40 rounded-full bg-radial ${motif.orbPrimary}`} />
-        <div className={`absolute left-8 bottom-4 h-24 w-36 rounded-full bg-radial ${motif.orbSecondary}`} />
-        <svg className="absolute right-10 top-6 h-28 w-28 opacity-65" viewBox="0 0 96 96" fill="none">
+        <div className={`absolute left-8 bottom-4 h-36 w-36 rounded-full bg-radial ${motif.orbSecondary}`} />
+        <svg className="absolute right-0 top-10 h-44 w-44 opacity-40 md:opacity-56 lg:opacity-72" viewBox="0 0 176 176" fill="none">
+          <circle className={motif.lineStroke} cx="88" cy="88" r="12" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="88" cy="88" r="24" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="88" cy="88" r="36" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="88" cy="88" r="48" strokeWidth="1" strokeDasharray="2 4" />
+          <circle className={motif.lineStroke} cx="88" cy="88" r="60" strokeWidth="1" strokeDasharray="2 5" />
+          <circle className={motif.lineStroke} cx="88" cy="88" r="72" strokeWidth="1" strokeDasharray="3 7" />
+        </svg>
+        <svg className="absolute left-10 top-6 h-10 w-36 opacity-30 md:opacity-42 lg:opacity-60" viewBox="0 0 144 40" fill="none">
+          <path className={motif.lineStroke} d="M0 20c4-8 8-8 12 0s8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0" strokeWidth="1.1" />
+        </svg>
+        <svg className="absolute right-10 top-6 h-28 w-28 opacity-35 md:opacity-50 lg:opacity-68" viewBox="0 0 96 96" fill="none">
           <path className={motif.lineStroke} d="M16 24h64M16 48h64M16 72h46" strokeWidth="1.2" />
           <circle className={motif.lineStroke} cx="70" cy="72" r="8" strokeWidth="1.2" />
         </svg>
@@ -125,7 +147,18 @@ function ModuleMotif({ tone }: { tone: ModuleTone }) {
       <>
         <div className={`absolute left-1/3 top-0 h-40 w-40 rounded-full bg-radial ${motif.orbPrimary}`} />
         <div className={`absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-radial ${motif.orbSecondary}`} />
-        <svg className="absolute left-10 top-5 h-24 w-24 opacity-60" viewBox="0 0 96 96" fill="none">
+        <svg className="absolute -right-2 bottom-2 h-40 w-40 opacity-38 md:opacity-54 lg:opacity-70" viewBox="0 0 160 160" fill="none">
+          <circle className={motif.lineStroke} cx="80" cy="80" r="10" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="20" strokeWidth="1" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="30" strokeWidth="1" strokeDasharray="2 4" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="40" strokeWidth="1" strokeDasharray="3 5" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="50" strokeWidth="1" strokeDasharray="2 6" />
+          <circle className={motif.lineStroke} cx="80" cy="80" r="60" strokeWidth="1" strokeDasharray="2 7" />
+        </svg>
+        <svg className="absolute left-28 bottom-2 h-10 w-32 opacity-30 md:opacity-42 lg:opacity-58" viewBox="0 0 128 40" fill="none">
+          <path className={motif.lineStroke} d="M0 20c4-9 8-9 12 0s8 9 12 0 8-9 12 0 8 9 12 0 8-9 12 0 8 9 12 0 8-9 12 0 8 9 12 0" strokeWidth="1.1" />
+        </svg>
+        <svg className="absolute left-10 top-5 h-24 w-24 opacity-35 md:opacity-48 lg:opacity-62" viewBox="0 0 96 96" fill="none">
           <rect className={motif.lineStroke} x="16" y="16" width="64" height="64" rx="12" strokeWidth="1.2" />
           <path className={motif.lineStroke} d="M16 38h64M34 16v22M62 16v22" strokeWidth="1.2" />
         </svg>
@@ -137,7 +170,18 @@ function ModuleMotif({ tone }: { tone: ModuleTone }) {
     <>
       <div className={`absolute -left-12 bottom-2 h-36 w-36 rounded-full bg-radial ${motif.orbPrimary}`} />
       <div className={`absolute right-12 top-4 h-44 w-44 rounded-full bg-radial ${motif.orbSecondary}`} />
-      <svg className="absolute right-10 bottom-6 h-24 w-28 opacity-65" viewBox="0 0 112 96" fill="none">
+      <svg className="absolute left-0 bottom-4 h-36 w-36 opacity-40 md:opacity-55 lg:opacity-72" viewBox="0 0 144 144" fill="none">
+        <circle className={motif.lineStroke} cx="72" cy="72" r="10" strokeWidth="1" />
+        <circle className={motif.lineStroke} cx="72" cy="72" r="20" strokeWidth="1" />
+        <circle className={motif.lineStroke} cx="72" cy="72" r="30" strokeWidth="1" strokeDasharray="2 4" />
+        <circle className={motif.lineStroke} cx="72" cy="72" r="40" strokeWidth="1" strokeDasharray="3 5" />
+        <circle className={motif.lineStroke} cx="72" cy="72" r="50" strokeWidth="1" strokeDasharray="2 6" />
+        <circle className={motif.lineStroke} cx="72" cy="72" r="60" strokeWidth="1" strokeDasharray="2 7" />
+      </svg>
+      <svg className="absolute right-8 top-4 h-10 w-36 opacity-30 md:opacity-42 lg:opacity-58" viewBox="0 0 144 40" fill="none">
+        <path className={motif.lineStroke} d="M0 20c4-8 8-8 12 0s8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0" strokeWidth="1.1" />
+      </svg>
+      <svg className="absolute right-10 bottom-6 h-24 w-28 opacity-35 md:opacity-50 lg:opacity-66" viewBox="0 0 112 96" fill="none">
         <path className={motif.lineStroke} d="M24 22h64M24 48h64M24 74h64" strokeWidth="1.1" />
         <circle className={motif.lineStroke} cx="24" cy="22" r="6" strokeWidth="1.1" />
         <circle className={motif.lineStroke} cx="88" cy="48" r="6" strokeWidth="1.1" />

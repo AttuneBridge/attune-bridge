@@ -78,7 +78,18 @@ export default async function HomePage() {
         <Card className="relative space-y-5 overflow-hidden border-module-textback-border/60 bg-linear-to-br from-app-surface to-module-textback-soft/35">
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute -left-14 top-2 h-44 w-44 rounded-full bg-radial from-module-textback-solid/16 to-module-textback-solid/0" />
-            <div className="absolute right-8 bottom-3 h-24 w-36 rounded-full bg-radial from-module-textback-border/35 to-module-textback-border/0" />
+            <div className="absolute right-8 bottom-3 h-32 w-32 rounded-full bg-radial from-module-textback-border/35 to-module-textback-border/0" />
+            <svg className="absolute -left-2 top-8 h-36 w-36 opacity-32 md:opacity-46 lg:opacity-60" viewBox="0 0 144 144" fill="none">
+              <circle className="stroke-module-textback-border/60" cx="72" cy="72" r="8" strokeWidth="1" />
+              <circle className="stroke-module-textback-border/60" cx="72" cy="72" r="16" strokeWidth="1" />
+              <circle className="stroke-module-textback-border/60" cx="72" cy="72" r="24" strokeWidth="1" />
+              <circle className="stroke-module-textback-border/60" cx="72" cy="72" r="32" strokeWidth="1" strokeDasharray="2 4" />
+              <circle className="stroke-module-textback-border/60" cx="72" cy="72" r="40" strokeWidth="1" strokeDasharray="2 5" />
+              <circle className="stroke-module-textback-border/60" cx="72" cy="72" r="48" strokeWidth="1" strokeDasharray="3 6" />
+            </svg>
+            <svg className="absolute right-0 bottom-2 h-9 w-40 opacity-25 md:opacity-36 lg:opacity-52" viewBox="0 0 160 36" fill="none">
+              <path className="stroke-module-textback-border/60" d="M0 18c4-8 8-8 12 0s8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0" strokeWidth="1" />
+            </svg>
           </div>
 
           <div className="relative">
@@ -126,7 +137,15 @@ export default async function HomePage() {
         <Card className="relative space-y-3 overflow-hidden border-module-scheduler-border/65 bg-linear-to-br from-app-surface to-module-scheduler-soft/40">
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute -right-10 top-2 h-36 w-36 rounded-full bg-radial from-module-scheduler-solid/14 to-module-scheduler-solid/0" />
-            <svg className="absolute left-4 bottom-4 h-20 w-20 opacity-60" viewBox="0 0 80 80" fill="none">
+            <svg className="absolute right-0 top-4 h-32 w-32 opacity-30 md:opacity-44 lg:opacity-60" viewBox="0 0 128 128" fill="none">
+              <circle className="stroke-module-scheduler-border/55" cx="64" cy="64" r="8" strokeWidth="1" />
+              <circle className="stroke-module-scheduler-border/55" cx="64" cy="64" r="16" strokeWidth="1" />
+              <circle className="stroke-module-scheduler-border/55" cx="64" cy="64" r="24" strokeWidth="1" />
+              <circle className="stroke-module-scheduler-border/55" cx="64" cy="64" r="32" strokeWidth="1" strokeDasharray="2 4" />
+              <circle className="stroke-module-scheduler-border/55" cx="64" cy="64" r="40" strokeWidth="1" strokeDasharray="2 5" />
+              <circle className="stroke-module-scheduler-border/55" cx="64" cy="64" r="48" strokeWidth="1" strokeDasharray="3 6" />
+            </svg>
+            <svg className="absolute left-4 bottom-4 h-20 w-20 opacity-34 md:opacity-48 lg:opacity-62" viewBox="0 0 80 80" fill="none">
               <rect className="stroke-module-scheduler-border/55" x="10" y="12" width="60" height="56" rx="10" strokeWidth="1.2" />
               <path className="stroke-module-scheduler-border/55" d="M10 30h60" strokeWidth="1.2" />
             </svg>
@@ -157,7 +176,18 @@ export default async function HomePage() {
         <Card className="relative space-y-3 overflow-hidden border-module-reviews-border/65 bg-linear-to-r from-app-surface via-app-surface to-module-reviews-soft/38">
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-radial from-module-reviews-solid/14 to-module-reviews-solid/0" />
-            <div className="absolute right-1/4 top-2 h-16 w-56 rounded-full bg-radial from-module-reviews-border/35 to-module-reviews-border/0" />
+            <div className="absolute right-1/4 top-2 h-28 w-28 rounded-full bg-radial from-module-reviews-border/35 to-module-reviews-border/0" />
+            <svg className="absolute -left-2 bottom-2 h-32 w-32 opacity-30 md:opacity-44 lg:opacity-58" viewBox="0 0 128 128" fill="none">
+              <circle className="stroke-module-reviews-border/60" cx="64" cy="64" r="8" strokeWidth="1" />
+              <circle className="stroke-module-reviews-border/60" cx="64" cy="64" r="16" strokeWidth="1" />
+              <circle className="stroke-module-reviews-border/60" cx="64" cy="64" r="24" strokeWidth="1" />
+              <circle className="stroke-module-reviews-border/60" cx="64" cy="64" r="32" strokeWidth="1" strokeDasharray="2 4" />
+              <circle className="stroke-module-reviews-border/60" cx="64" cy="64" r="40" strokeWidth="1" strokeDasharray="2 5" />
+              <circle className="stroke-module-reviews-border/60" cx="64" cy="64" r="48" strokeWidth="1" strokeDasharray="3 6" />
+            </svg>
+            <svg className="absolute right-0 bottom-1 h-8 w-36 opacity-24 md:opacity-34 lg:opacity-48" viewBox="0 0 144 32" fill="none">
+              <path className="stroke-module-reviews-border/60" d="M0 16c4-8 8-8 12 0s8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0 8 8 12 0 8-8 12 0" strokeWidth="1" />
+            </svg>
           </div>
           <p className="relative inline-flex w-fit items-center rounded-full border border-module-reviews-border bg-app-surface px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-module-reviews-solid">
             Outcome Lens
