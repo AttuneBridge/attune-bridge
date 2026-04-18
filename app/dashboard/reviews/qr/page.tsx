@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { CopyToClipboardButton } from "@/components/ui/copy-to-clipboard-button";
 import { PrintPageButton } from "@/components/ui/print-page-button";
 import { QrCodePreview } from "@/components/ui/qr-code-preview";
 import { getAppUrl } from "@/lib/app-url";
 import { redirectToDashboardAccess } from "@/lib/auth/redirects";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
+import { buildReviewRequestMessage } from "@/lib/reviews/review-request-template";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
 export const dynamic = "force-dynamic";
@@ -23,16 +25,22 @@ export default async function DashboardReviewsQrPage() {
         select: {
           id: true,
           name: true,
+          reviewRequestTemplate: true,
         },
       },
     },
-  });
+    });
 
   if (!location || location.business.id !== workspace.businessId) {
     redirectToDashboardAccess("/dashboard/tools/reviews/qr");
   }
 
   const publicFeedbackUrl = `${getAppUrl()}/feedback/${location.slug}`;
+  const suggestedMessage = buildReviewRequestMessage({
+    template: location.business.reviewRequestTemplate,
+    businessName: location.business.name,
+    formUrl: publicFeedbackUrl,
+  });
 
   await trackValidationEvent({
     event: validationEvent.qrViewed,
@@ -73,6 +81,10 @@ export default async function DashboardReviewsQrPage() {
               <span className="font-medium text-slate-900">Public review URL:</span>
             </p>
             <p className="break-all rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-800">{publicFeedbackUrl}</p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <CopyToClipboardButton value={publicFeedbackUrl} label="Copy form URL" copiedLabel="URL copied!" />
+              <CopyToClipboardButton value={suggestedMessage} label="Copy thank-you text" copiedLabel="Text copied!" />
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
