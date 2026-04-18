@@ -1,12 +1,19 @@
-import { SubscriptionStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
+import {
+  cancelSubscriptionAtPeriodEnd,
+  createSubscriptionCheckoutSession,
+  resumeSubscriptionRenewal,
+} from "@/lib/billing/subscriptions";
+import { getSubscriptionCurrentPeriodEnd } from "@/lib/billing/stripe-subscription-utils";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
-const RENEWAL_DAYS = 30;
-const WINBACK_EXTENSION_DAYS = 7;
-const WINBACK_AGGRESSIVE_EXTENSION_DAYS = 14;
+function getCurrentPeriodEndDate(subscription: Stripe.Subscription) {
+  const periodEnd = getSubscriptionCurrentPeriodEnd(subscription);
+  return periodEnd ? new Date(periodEnd * 1000) : null;
+}
 
 const cancelReasonLabels = new Set([
   "TOO_EXPENSIVE",
@@ -16,42 +23,18 @@ const cancelReasonLabels = new Set([
   "OTHER",
 ]);
 
-function addDays(from: Date, days: number) {
-  const next = new Date(from);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function maxDate(values: Array<Date | null>, fallback: Date) {
-  const validDates = values.filter((value): value is Date => Boolean(value));
-
-  if (validDates.length === 0) {
-    return fallback;
-  }
-
-  return validDates.reduce((latest, current) => (current > latest ? current : latest));
-}
-
-function getWinbackVariantSeed(input: string) {
-  return [...input].reduce((total, char) => total + char.charCodeAt(0), 0);
-}
-
-function getWinbackVariant(businessId: string) {
-  return getWinbackVariantSeed(businessId) % 2 === 0 ? "STANDARD_7" : "AGGRESSIVE_14";
-}
-
-function getWinbackExtensionDays(variant: "STANDARD_7" | "AGGRESSIVE_14") {
-  return variant === "AGGRESSIVE_14" ? WINBACK_AGGRESSIVE_EXTENSION_DAYS : WINBACK_EXTENSION_DAYS;
-}
+type RenewBody = {
+  action?: unknown;
+  manageToken?: unknown;
+  cancelReason?: unknown;
+};
 
 export async function POST(
   request: Request,
   context: { params: Promise<{ businessId: string }> },
 ) {
   const { businessId } = await context.params;
-  const body = (await request.json().catch(() => null)) as
-    | { action?: unknown; manageToken?: unknown; cancelReason?: unknown }
-    | null;
+  const body = (await request.json().catch(() => null)) as RenewBody | null;
   const action = body && typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
   const manageToken = body && typeof body.manageToken === "string" ? body.manageToken.trim() : "";
   const cancelReasonRaw =
@@ -65,98 +48,129 @@ export async function POST(
     return NextResponse.json({ error: "Invalid cancel reason." }, { status: 400 });
   }
 
-  const existing = await prisma.business.findUnique({
+  const business = await prisma.business.findUnique({
     where: { id: businessId },
     select: {
       id: true,
-      paidThrough: true,
-      trialEndsAt: true,
+      stripeStatus: true,
+      stripeCurrentPeriodEnd: true,
+      stripeCancelAtPeriodEnd: true,
     },
   });
 
-  if (!existing) {
+  if (!business) {
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
-  const access = await getBusinessApiAccessResult(existing.id, manageToken);
+  const access = await getBusinessApiAccessResult(business.id, manageToken);
 
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  const now = new Date();
-  const billingAnchor = maxDate([existing.paidThrough, existing.trialEndsAt], now);
-  const nextPaidThrough = addDays(billingAnchor, RENEWAL_DAYS);
-  const winbackVariant = getWinbackVariant(businessId);
-  const winbackExtensionDays = getWinbackExtensionDays(winbackVariant);
+  try {
+    if (action === "start") {
+      if (business.stripeCancelAtPeriodEnd) {
+        const subscription = await resumeSubscriptionRenewal(business.id);
 
-  const updated = await prisma.business.update({
-    where: { id: businessId },
-    data:
-      action === "start"
-        ? {
-            subscriptionStatus: SubscriptionStatus.ACTIVE_PAID,
-            paidThrough: nextPaidThrough,
-            autoRenewEnabled: true,
-            deactivatedAt: null,
-          }
-        : action === "cancel"
-          ? {
-            subscriptionStatus: SubscriptionStatus.INACTIVE_CANCELED,
-            autoRenewEnabled: false,
-            deactivatedAt: now,
-            }
-          : {
-              subscriptionStatus: SubscriptionStatus.ACTIVE_PAID,
-              paidThrough: addDays(maxDate([existing.paidThrough, now], now), winbackExtensionDays),
-              autoRenewEnabled: true,
-              deactivatedAt: null,
-            },
-    select: {
-      id: true,
-      subscriptionStatus: true,
-      paidThrough: true,
-      autoRenewEnabled: true,
-    },
-  });
+        await trackValidationEvent({
+          event: validationEvent.subscriptionWinbackAccepted,
+          businessId: business.id,
+          metadata: {
+            action,
+            via: "resume_renewal",
+            stripeStatus: subscription.status,
+          },
+        });
 
-  await trackValidationEvent({
-    event:
-      action === "start"
-        ? validationEvent.subscriptionStarted
-        : action === "cancel"
-          ? validationEvent.subscriptionCanceled
-          : validationEvent.subscriptionWinbackAccepted,
-    businessId: updated.id,
-    metadata: {
-      action,
-      cancelReason: cancelReasonRaw || null,
-      winbackVariant: action === "winback" ? winbackVariant : null,
-      winbackExtensionDays: action === "winback" ? winbackExtensionDays : null,
-      subscriptionStatus: updated.subscriptionStatus,
-      autoRenewEnabled: updated.autoRenewEnabled,
-    },
-  });
+        return NextResponse.json({
+          ok: true,
+          action,
+          resumed: true,
+          stripeStatus: subscription.status,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          currentPeriodEnd: getCurrentPeriodEndDate(subscription),
+        });
+      }
 
-  if (action === "cancel" && cancelReasonRaw) {
+      const result = await createSubscriptionCheckoutSession({
+        businessId: business.id,
+        successPath: "/dashboard/settings",
+        cancelPath: "/dashboard/settings",
+      });
+
+      await trackValidationEvent({
+        event: validationEvent.subscriptionStarted,
+        businessId: business.id,
+        metadata: {
+          action,
+          checkoutCreated: Boolean(result.checkoutUrl),
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        action,
+        checkoutUrl: result.checkoutUrl,
+        alreadyActive: !result.checkoutUrl,
+      });
+    }
+
+    if (action === "cancel") {
+      const subscription = await cancelSubscriptionAtPeriodEnd(business.id);
+
+      await trackValidationEvent({
+        event: validationEvent.subscriptionCanceled,
+        businessId: business.id,
+        metadata: {
+          action,
+          cancelReason: cancelReasonRaw || null,
+          stripeStatus: subscription.status,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        },
+      });
+
+      if (cancelReasonRaw) {
+        await trackValidationEvent({
+          event: validationEvent.subscriptionCancelReasonCaptured,
+          businessId: business.id,
+          metadata: {
+            cancelReason: cancelReasonRaw,
+          },
+        });
+      }
+
+      return NextResponse.json({
+        ok: true,
+        action,
+        stripeStatus: subscription.status,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        currentPeriodEnd: getCurrentPeriodEndDate(subscription),
+      });
+    }
+
+    const subscription = await resumeSubscriptionRenewal(business.id);
+
     await trackValidationEvent({
-      event: validationEvent.subscriptionCancelReasonCaptured,
-      businessId: updated.id,
+      event: validationEvent.subscriptionWinbackAccepted,
+      businessId: business.id,
       metadata: {
-        cancelReason: cancelReasonRaw,
+        action,
+        cancelReason: cancelReasonRaw || null,
+        stripeStatus: subscription.status,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
       },
     });
-  }
 
-  return NextResponse.json({
-    ok: true,
-    renewalDays: RENEWAL_DAYS,
-    winbackExtensionDays,
-    winbackVariant,
-    action,
-    businessId: updated.id,
-    subscriptionStatus: updated.subscriptionStatus,
-    paidThrough: updated.paidThrough,
-    autoRenewEnabled: updated.autoRenewEnabled,
-  });
+    return NextResponse.json({
+      ok: true,
+      action,
+      stripeStatus: subscription.status,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodEnd: getCurrentPeriodEndDate(subscription),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Billing action failed.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

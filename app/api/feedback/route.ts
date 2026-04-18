@@ -5,10 +5,10 @@ import {
   Sentiment,
 } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { evaluateBillingAccess } from "@/lib/billing/access";
 import { queueLoyaltyMessagesFromFeedback } from "@/lib/loyalty/feedback-trigger";
 import { sendFeedbackAlerts } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { evaluateBusinessAccess } from "@/lib/subscription-access";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
 type FeedbackRequestBody = {
@@ -227,11 +227,7 @@ export async function POST(request: Request) {
           id: true,
           name: true,
           email: true,
-          subscriptionStatus: true,
-          trialEndsAt: true,
-          paidThrough: true,
-          autoRenewEnabled: true,
-          deactivatedAt: true,
+          stripeStatus: true,
           instantEmailNeutral: true,
           instantEmailNegative: true,
           smsNegativeEnabled: true,
@@ -245,12 +241,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Location not found." }, { status: 404 });
   }
 
-  const access = evaluateBusinessAccess({
-    subscriptionStatus: location.business.subscriptionStatus,
-    trialEndsAt: location.business.trialEndsAt,
-    paidThrough: location.business.paidThrough,
-    autoRenewEnabled: location.business.autoRenewEnabled,
-    deactivatedAt: location.business.deactivatedAt,
+  const access = evaluateBillingAccess({
+    stripeStatus: location.business.stripeStatus,
   });
 
   if (!access.isActive) {

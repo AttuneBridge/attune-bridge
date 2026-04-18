@@ -1,6 +1,10 @@
-import { AppModule, ModuleSubscriptionStatus } from "@prisma/client";
+import { AppModule } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getBusinessApiAccessResult } from "@/lib/auth/business-api-access";
+import {
+  activateModuleOnSubscription,
+  scheduleModuleDeactivation,
+} from "@/lib/billing/subscriptions";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
 
@@ -49,36 +53,43 @@ export async function POST(
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  const now = new Date();
   const moduleKey = moduleValue as AppModule;
 
-  const updated = await prisma.businessModuleSubscription.upsert({
+  if (action === "activate") {
+    try {
+      await activateModuleOnSubscription({
+        businessId: business.id,
+        module: moduleKey,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not activate module.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  let effectiveAt: Date | null = null;
+
+  if (action === "deactivate") {
+    try {
+      const result = await scheduleModuleDeactivation({
+        businessId: business.id,
+        module: moduleKey,
+      });
+      effectiveAt = result.effectiveAt;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not schedule module deactivation.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  const projection = await prisma.businessModuleSubscription.findUnique({
     where: {
       businessId_module: {
         businessId: business.id,
         module: moduleKey,
       },
     },
-    update:
-      action === "activate"
-        ? {
-            status: ModuleSubscriptionStatus.ACTIVE,
-            startedAt: now,
-            endsAt: null,
-          }
-        : {
-            status: ModuleSubscriptionStatus.INACTIVE,
-            endsAt: now,
-          },
-    create: {
-      businessId: business.id,
-      module: moduleKey,
-      status: action === "activate" ? ModuleSubscriptionStatus.ACTIVE : ModuleSubscriptionStatus.INACTIVE,
-      startedAt: action === "activate" ? now : null,
-      endsAt: action === "activate" ? null : now,
-    },
     select: {
-      businessId: true,
       module: true,
       status: true,
       startedAt: true,
@@ -90,17 +101,19 @@ export async function POST(
     event: validationEvent.moduleSubscriptionUpdated,
     businessId: business.id,
     metadata: {
-      module: updated.module,
+      module: moduleKey,
       action,
-      status: updated.status,
+      status: projection?.status ?? null,
+      effectiveAt,
     },
   });
 
   return NextResponse.json({
     ok: true,
-    module: updated.module,
-    status: updated.status,
-    startedAt: updated.startedAt,
-    endsAt: updated.endsAt,
+    module: projection?.module ?? moduleKey,
+    status: projection?.status ?? null,
+    startedAt: projection?.startedAt ?? null,
+    endsAt: projection?.endsAt ?? null,
+    effectiveAt,
   });
 }

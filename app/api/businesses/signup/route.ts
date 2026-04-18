@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { BusinessMembershipRole, SubscriptionStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { allowsClerkAuth } from "@/lib/auth/mode";
+import { provisionTrialSubscriptionForBusiness } from "@/lib/billing/subscriptions";
 import { createManageToken } from "@/lib/manage-token";
 import { prisma } from "@/lib/prisma";
 import { trackValidationEvent, validationEvent } from "@/lib/validation-events";
@@ -190,6 +191,20 @@ export async function POST(request: Request) {
     businessId: created.business.id,
     locationId: created.location.id,
   });
+
+  try {
+    await provisionTrialSubscriptionForBusiness(created.business.id);
+  } catch (error) {
+    await trackValidationEvent({
+      event: validationEvent.subscriptionStarted,
+      businessId: created.business.id,
+      metadata: {
+        source: "signup_trial_provision",
+        result: "failed",
+        error: error instanceof Error ? error.message : "unknown",
+      },
+    });
+  }
 
   const manageToken = createManageToken({ businessId: created.business.id });
 

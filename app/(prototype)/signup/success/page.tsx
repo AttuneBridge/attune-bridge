@@ -50,7 +50,7 @@ export default async function SignupSuccessPage({ searchParams }: SignupSuccessP
           select: {
             id: true,
             name: true,
-            trialEndsAt: true,
+            stripeTrialEnd: true,
           },
         },
       },
@@ -75,7 +75,7 @@ export default async function SignupSuccessPage({ searchParams }: SignupSuccessP
   const manageHref = manageToken
     ? `/dashboard/reviews?slug=${encodeURIComponent(location.slug)}&token=${encodeURIComponent(manageToken)}`
     : `/dashboard/reviews?slug=${encodeURIComponent(location.slug)}`;
-  const dayDelta = getDayDelta(location.business.trialEndsAt);
+  const dayDelta = getDayDelta(location.business.stripeTrialEnd);
   const daysRemaining = dayDelta === null ? null : Math.max(dayDelta, 0);
 
   return (
@@ -83,11 +83,11 @@ export default async function SignupSuccessPage({ searchParams }: SignupSuccessP
       <Card className="space-y-6">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Setup Complete</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
             Your feedback QR code is ready
           </h1>
           <p className="text-sm text-slate-700">
-            Trial active for {location.business.name}. Your trial ends on {formatDate(location.business.trialEndsAt)}.
+            Trial active for {location.business.name}. Your trial ends on {formatDate(location.business.stripeTrialEnd)}.
           </p>
           <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
             Trial active
