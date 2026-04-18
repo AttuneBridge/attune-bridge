@@ -3,6 +3,7 @@ import { AppModule, BusinessMembershipRole, SystemRole } from "@prisma/client";
 import { headers } from "next/headers";
 import { DashboardNav } from "@/components/navigation/dashboard-nav";
 import { PublicHeaderNav } from "@/components/navigation/public-header-nav";
+import { SiteFooter } from "@/components/navigation/site-footer";
 import { DemoModeBanner } from "@/components/ui/demo-mode-banner";
 import { redirectToDashboardAccess } from "@/lib/auth/redirects";
 import { isDemoModeAllowedForHost } from "@/lib/demo/config";
@@ -82,8 +83,17 @@ export default async function DashboardLayout({
 
   return (
     <>
-      <header className="border-b border-app-surface-muted bg-app-surface">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3">
+      <header className="relative overflow-hidden border-b border-app-surface-muted bg-linear-to-r from-app-surface via-app-surface to-app-surface-muted/55">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-8 top-0 h-20 w-20 rounded-full bg-radial from-module-reviews-solid/14 to-module-reviews-solid/0" />
+          <div className="absolute right-16 top-0 h-16 w-28 rounded-full bg-radial from-module-textback-border/30 to-module-textback-border/0" />
+          <svg className="absolute right-4 bottom-1 h-8 w-24 opacity-60" viewBox="0 0 96 32" fill="none">
+            <path className="stroke-module-scheduler-border/55" d="M6 24h84" strokeWidth="1" />
+            <circle className="stroke-module-scheduler-border/55" cx="76" cy="24" r="3" strokeWidth="1" />
+          </svg>
+        </div>
+
+        <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
           <Link href="/" className="text-sm font-semibold tracking-tight text-app-text">
             AttuneBridge
           </Link>
@@ -93,6 +103,7 @@ export default async function DashboardLayout({
       {isDemoMode ? <DemoModeBanner /> : null}
       <DashboardNav enabledModules={dashboardNavModules} />
       {children}
+      <SiteFooter />
     </>
   );
 }

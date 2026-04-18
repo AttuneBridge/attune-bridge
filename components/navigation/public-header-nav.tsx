@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getDemoUrl } from "@/lib/demo/config";
 
 type PublicHeaderNavProps = {
   hasDashboardAccess: boolean;
@@ -15,6 +16,8 @@ function getLinkClass(isActive: boolean) {
 
 export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
   const pathname = usePathname();
+  const demoAccessHref = getDemoUrl("/demo-access");
+  const playbookHref = getDemoUrl("/playbook");
 
   const isHomeActive = pathname === "/";
   const isTryDemoActive =
@@ -32,14 +35,14 @@ export function PublicHeaderNav({ hasDashboardAccess }: PublicHeaderNavProps) {
         Home
       </Link>
       <Link
-        href="/demo-access"
+        href={demoAccessHref}
         aria-current={isTryDemoActive ? "page" : undefined}
         className={getLinkClass(isTryDemoActive)}
       >
         Try Demo
       </Link>
       <Link
-        href="/playbook"
+        href={playbookHref}
         aria-current={isPlaybookActive ? "page" : undefined}
         className={getLinkClass(isPlaybookActive)}
       >
