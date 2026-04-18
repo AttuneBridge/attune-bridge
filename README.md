@@ -99,6 +99,7 @@ Secondary success signal:
 Copy `.env.example` to `.env.local` and set:
 
 - `DATABASE_URL`
+- `DIRECT_URL` (direct Postgres URL for Prisma migrations/introspection)
 - `AUTH_MODE` (`clerk_only`; default `clerk_only`)
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (required when Clerk auth is enabled)
 - `CLERK_SECRET_KEY` (required when Clerk auth is enabled)
@@ -116,6 +117,7 @@ Copy `.env.example` to `.env.local` and set:
 ### Environment value source checklist
 
 - `DATABASE_URL`: Supabase project settings -> Database -> Connection string (Prisma format).
+- `DIRECT_URL`: Supabase direct Postgres connection string (non-pooled) for Prisma CLI operations.
 - `AUTH_MODE`: auth mode (`clerk_only` enforces Clerk sign-in for owner workspace routes).
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk dashboard -> API Keys -> Publishable key.
 - `CLERK_SECRET_KEY`: Clerk dashboard -> API Keys -> Secret key.
@@ -138,9 +140,10 @@ node -e "const c=require('crypto'); console.log('MANAGE_TOKEN_SECRET='+c.randomB
 
 Env sync commands:
 
-- `pnpm env:check`: verify required keys exist in local and Vercel profile files.
+- `pnpm env:check`: verify required keys exist across all local and Vercel profile files.
 - `pnpm env:sync`: add missing keys from `.env.example` with blank values.
 - `pnpm env:sync:all`: add missing keys across local, local overrides, and Vercel profile files.
+- `pnpm env:doctor`: run sync + check to keep all profiles aligned in one command.
 - `pnpm env:set -- --key MY_VAR --value my-value --profiles vercel-development,vercel-production`: set one key across selected profiles.
 - `pnpm env:push`: copy non-empty values from `.env.local` into both Vercel profile files (advanced).
 - `pnpm env:vercel:sync-keys`: sync key structure for both Vercel profile files, then validate.
@@ -154,6 +157,19 @@ Auth migration commands:
 - `pnpm auth:link-clerk-user -- --email dev.superadmin@attunebridge.com --clerk-user-id user_xxx --business-email owner@democoffee.com --system-role SUPER_ADMIN`: link a Clerk user ID to a local user and optionally grant owner membership for a business.
 
 `pnpm env:push` skips empty source values by default so blank local values do not overwrite populated Vercel profile files.
+
+Prisma command behavior:
+
+- Default local Prisma commands use the development profile (`.env.development.local`):
+  - `pnpm prisma:generate`
+  - `pnpm prisma:migrate`
+  - `pnpm prisma:seed`
+- Profile-specific Prisma commands are available when needed:
+  - `pnpm prisma:migrate:local`, `pnpm prisma:migrate:dev`, `pnpm prisma:migrate:prod-local`
+  - `pnpm prisma:migrate:deploy:dev`, `pnpm prisma:migrate:deploy:prod-local`
+  - `pnpm prisma:migrate:status:dev`, `pnpm prisma:migrate:status:prod-local`
+- Prisma profile wrappers enforce `DATABASE_URL` and `DIRECT_URL` presence before running.
+- Run `pnpm env:doctor` before migrations if env files changed.
 
 ### Scheduled loyalty processing
 

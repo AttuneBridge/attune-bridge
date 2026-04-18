@@ -369,6 +369,23 @@ Rules:
 - If CI/GitHub Actions depends on a variable, update repository secrets and mention it in the PR.
 - Use `pnpm env:vercel:sync-keys` to keep key structure aligned across Vercel profiles.
 - Use `pnpm env:vercel:push-dev` and `pnpm env:vercel:push-prod` to copy values intentionally per environment.
+- Run `pnpm env:doctor` after any env-key changes to sync + verify all profiles.
+
+### Prisma env and migration policy
+
+For all local Prisma operations, agents must use profile-aware package scripts (not raw `prisma` CLI invocations):
+
+- `pnpm prisma:generate`
+- `pnpm prisma:migrate`
+- `pnpm prisma:seed`
+- `pnpm prisma:migrate:dev`, `pnpm prisma:migrate:prod-local`
+- `pnpm prisma:migrate:deploy:dev`, `pnpm prisma:migrate:deploy:prod-local`
+
+Operational rules:
+
+- Run `pnpm env:check` before Prisma migrations.
+- If env keys were added/renamed/removed in the same task, run `pnpm env:doctor` before migrations.
+- Ensure `DATABASE_URL` and `DIRECT_URL` are present in the selected env profile.
 
 ### Rules
 

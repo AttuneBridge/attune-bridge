@@ -4,6 +4,7 @@ import {
   StripeSubscriptionStatus,
 } from "@prisma/client";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
+import { ReviewRequestTemplateForm } from "@/components/forms/review-request-template-form";
 import { RenewSubscriptionForm } from "@/components/forms/renew-subscription-form";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
@@ -58,10 +59,12 @@ export default async function DashboardSettingsPage() {
   type SettingsTuple = [
     {
       id: string;
+      name: string;
       stripeStatus: StripeSubscriptionStatus | null;
       stripeTrialEnd: Date | null;
       stripeCurrentPeriodEnd: Date | null;
       stripeCancelAtPeriodEnd: boolean;
+      reviewRequestTemplate: string | null;
     } | null,
     Array<{
       module: AppModule;
@@ -81,10 +84,12 @@ export default async function DashboardSettingsPage() {
           },
           select: {
             id: true,
+            name: true,
             stripeStatus: true,
             stripeTrialEnd: true,
             stripeCurrentPeriodEnd: true,
             stripeCancelAtPeriodEnd: true,
+            reviewRequestTemplate: true,
           },
         }),
         prisma.businessModuleSubscription.findMany({
@@ -163,6 +168,18 @@ export default async function DashboardSettingsPage() {
             />
           </Card>
         </section>
+
+        <Card className="space-y-3">
+          <h2 className="text-lg font-semibold text-slate-900">Reviews share text</h2>
+          <p className="text-sm text-slate-700">
+            Customize the thank-you text your team copies from the QR page when requesting feedback by text.
+          </p>
+          <ReviewRequestTemplateForm
+            businessId={workspace.businessId}
+            initialTemplate={business.reviewRequestTemplate}
+            businessName={business.name}
+          />
+        </Card>
       </div>
     </main>
   );

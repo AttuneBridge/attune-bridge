@@ -17,6 +17,7 @@ const profilePaths = {
 };
 
 const defaultTargets = ["local", "vercel-development", "vercel-production"];
+const defaultCheckTargets = ["local", "development", "production-local", "vercel-development", "vercel-production"];
 const allTargets = ["local", "development", "production-local", "vercel-development", "vercel-production"];
 
 const usage = () => {
@@ -140,7 +141,7 @@ const getArgValue = (args, flag) => {
 
 const runCheck = (args) => {
   const targetsArg = getArgValue(args, "--targets");
-  const targets = parseCsvArg(targetsArg, defaultTargets);
+  const targets = parseCsvArg(targetsArg, defaultCheckTargets);
   const sourceKeys = extractKeys(readLines(fileForProfile("example")));
   let hasFailure = false;
 
