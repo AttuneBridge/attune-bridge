@@ -37,6 +37,15 @@ async function readReturnToFromRequest(request: Request) {
   }
 }
 
+function readReturnToFromUrl(request: Request) {
+  try {
+    const requestUrl = new URL(request.url);
+    return sanitizeReturnTo(requestUrl.searchParams.get("returnTo"));
+  } catch {
+    return "/dashboard";
+  }
+}
+
 async function getDemoBusinessId() {
   const existingMembership = await prisma.businessMembership.findFirst({
     where: {
@@ -145,21 +154,12 @@ function getDatabaseRuntimeHints() {
   }
 }
 
-export async function GET() {
-  return NextResponse.json(
-    { error: "Method not allowed. Submit the demo access form from /demo-access." },
-    { status: 405 },
-  );
-}
-
-export async function POST(request: Request) {
+async function createDemoSessionResponse(request: Request, returnTo: string) {
   const host = request.headers.get("host");
 
   if (!isDemoModeAllowedForHost(host)) {
     return NextResponse.json({ error: "Demo access is unavailable on this host." }, { status: 403 });
   }
-
-  const returnTo = await readReturnToFromRequest(request);
 
   let demoBusinessId: string | null = null;
 
@@ -215,4 +215,14 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function GET(request: Request) {
+  const returnTo = readReturnToFromUrl(request);
+  return createDemoSessionResponse(request, returnTo);
+}
+
+export async function POST(request: Request) {
+  const returnTo = await readReturnToFromRequest(request);
+  return createDemoSessionResponse(request, returnTo);
 }

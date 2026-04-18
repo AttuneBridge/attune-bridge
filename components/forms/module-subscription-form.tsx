@@ -105,7 +105,7 @@ export function ModuleSubscriptionForm({ businessId, moduleSubscriptions, manage
       setSuccessMessage(
         action === "activate"
           ? `${MODULE_LABELS[module]} module activated.`
-          : `${MODULE_LABELS[module]} module deactivated.`,
+          : `${MODULE_LABELS[module]} module deactivation scheduled for next billing cycle.`,
       );
       router.refresh();
     } catch {

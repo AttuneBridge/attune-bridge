@@ -17,11 +17,12 @@ const profilePaths = {
 };
 
 const defaultTargets = ["local", "vercel-development", "vercel-production"];
+const allTargets = ["local", "development", "production-local", "vercel-development", "vercel-production"];
 
 const usage = () => {
   console.log(`
 Usage:
-  node scripts/env-sync.mjs check
+  node scripts/env-sync.mjs check [--targets local,development,production-local,vercel-development,vercel-production]
   node scripts/env-sync.mjs sync [--targets local,vercel-development,vercel-production]
   node scripts/env-sync.mjs set --key KEY --value VALUE [--profiles local,vercel-development]
   node scripts/env-sync.mjs set --key KEY --value-from-stdin [--profiles local,vercel-development]
@@ -137,9 +138,10 @@ const getArgValue = (args, flag) => {
   return args[idx + 1] ?? null;
 };
 
-const runCheck = () => {
+const runCheck = (args) => {
+  const targetsArg = getArgValue(args, "--targets");
+  const targets = parseCsvArg(targetsArg, defaultTargets);
   const sourceKeys = extractKeys(readLines(fileForProfile("example")));
-  const targets = defaultTargets;
   let hasFailure = false;
 
   for (const target of targets) {
@@ -279,7 +281,7 @@ const main = () => {
   }
 
   if (command === "check") {
-    runCheck();
+    runCheck(args);
     return;
   }
 

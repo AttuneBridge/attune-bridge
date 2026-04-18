@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FeedbackStatus, SubscriptionStatus } from "@prisma/client";
+import { FeedbackStatus, StripeSubscriptionStatus } from "@prisma/client";
 import { Card } from "@/components/ui/card";
 import { getOwnerWorkspaceContextOrRedirect } from "@/lib/owner-workspace-context";
 import { prisma } from "@/lib/prisma";
@@ -21,16 +21,28 @@ function formatDate(value: Date | null) {
   return value.toLocaleDateString();
 }
 
-function getSubscriptionLabel(status: SubscriptionStatus) {
+function getSubscriptionLabel(status: StripeSubscriptionStatus | null) {
+  if (!status) {
+    return "No billing profile";
+  }
+
   switch (status) {
-    case SubscriptionStatus.ACTIVE_PAID:
-      return "Active Paid";
-    case SubscriptionStatus.TRIAL_ACTIVE:
-      return "Trial Active";
-    case SubscriptionStatus.INACTIVE_EXPIRED:
-      return "Inactive (Expired)";
-    case SubscriptionStatus.INACTIVE_CANCELED:
+    case StripeSubscriptionStatus.TRIALING:
+      return "Trialing";
+    case StripeSubscriptionStatus.ACTIVE:
+      return "Active";
+    case StripeSubscriptionStatus.PAST_DUE:
+      return "Past due";
+    case StripeSubscriptionStatus.CANCELED:
       return "Canceled";
+    case StripeSubscriptionStatus.UNPAID:
+      return "Unpaid";
+    case StripeSubscriptionStatus.PAUSED:
+      return "Paused";
+    case StripeSubscriptionStatus.INCOMPLETE:
+      return "Incomplete";
+    case StripeSubscriptionStatus.INCOMPLETE_EXPIRED:
+      return "Incomplete expired";
     default:
       return "Unknown";
   }
@@ -43,10 +55,10 @@ export default async function DashboardHomePage() {
   type HomeMetricsTuple = [
     {
       name: string;
-      subscriptionStatus: SubscriptionStatus;
-      trialEndsAt: Date | null;
-      paidThrough: Date | null;
-      autoRenewEnabled: boolean;
+      stripeStatus: StripeSubscriptionStatus | null;
+      stripeTrialEnd: Date | null;
+      stripeCurrentPeriodEnd: Date | null;
+      stripeCancelAtPeriodEnd: boolean;
     } | null,
     number,
     number,
@@ -65,10 +77,10 @@ export default async function DashboardHomePage() {
             where: { id: workspace.businessId },
             select: {
               name: true,
-              subscriptionStatus: true,
-              trialEndsAt: true,
-              paidThrough: true,
-              autoRenewEnabled: true,
+              stripeStatus: true,
+              stripeTrialEnd: true,
+              stripeCurrentPeriodEnd: true,
+              stripeCancelAtPeriodEnd: true,
             },
           }),
           prisma.feedback.count({
@@ -140,13 +152,17 @@ export default async function DashboardHomePage() {
               </p>
               <p>
                 <span className="font-medium text-slate-900">Subscription:</span>{" "}
-                {business ? getSubscriptionLabel(business.subscriptionStatus) : "Unknown"}
+                {business ? getSubscriptionLabel(business.stripeStatus) : "Unknown"}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Trial ends:</span> {formatDate(business?.trialEndsAt ?? null)}
+                <span className="font-medium text-slate-900">Trial ends:</span> {formatDate(business?.stripeTrialEnd ?? null)}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Paid through:</span> {formatDate(business?.paidThrough ?? null)}
+                <span className="font-medium text-slate-900">Current period ends:</span> {formatDate(business?.stripeCurrentPeriodEnd ?? null)}
+              </p>
+              <p>
+                <span className="font-medium text-slate-900">Cancel at period end:</span>{" "}
+                {business?.stripeCancelAtPeriodEnd ? "Yes" : "No"}
               </p>
             </div>
 

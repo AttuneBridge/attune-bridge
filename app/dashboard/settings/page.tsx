@@ -1,7 +1,7 @@
 import {
   AppModule,
   ModuleSubscriptionStatus,
-  SubscriptionStatus,
+  StripeSubscriptionStatus,
 } from "@prisma/client";
 import { ModuleSubscriptionForm } from "@/components/forms/module-subscription-form";
 import { RenewSubscriptionForm } from "@/components/forms/renew-subscription-form";
@@ -25,16 +25,28 @@ const OWNER_MANAGED_MODULES: Array<Exclude<AppModule, "FEEDBACK">> = [
   AppModule.MISSED_CALL_TEXTBACK,
 ];
 
-function getStatusLabel(status: SubscriptionStatus) {
+function getStatusLabel(status: StripeSubscriptionStatus | null) {
+  if (!status) {
+    return "No billing profile";
+  }
+
   switch (status) {
-    case SubscriptionStatus.ACTIVE_PAID:
-      return "Active Paid";
-    case SubscriptionStatus.TRIAL_ACTIVE:
-      return "Trial Active";
-    case SubscriptionStatus.INACTIVE_EXPIRED:
-      return "Inactive (Expired)";
-    case SubscriptionStatus.INACTIVE_CANCELED:
+    case StripeSubscriptionStatus.ACTIVE:
+      return "Active";
+    case StripeSubscriptionStatus.TRIALING:
+      return "Trialing";
+    case StripeSubscriptionStatus.PAST_DUE:
+      return "Past due";
+    case StripeSubscriptionStatus.CANCELED:
       return "Canceled";
+    case StripeSubscriptionStatus.UNPAID:
+      return "Unpaid";
+    case StripeSubscriptionStatus.PAUSED:
+      return "Paused";
+    case StripeSubscriptionStatus.INCOMPLETE:
+      return "Incomplete";
+    case StripeSubscriptionStatus.INCOMPLETE_EXPIRED:
+      return "Incomplete expired";
     default:
       return "Unknown";
   }
@@ -46,10 +58,10 @@ export default async function DashboardSettingsPage() {
   type SettingsTuple = [
     {
       id: string;
-      subscriptionStatus: SubscriptionStatus;
-      trialEndsAt: Date | null;
-      paidThrough: Date | null;
-      autoRenewEnabled: boolean;
+      stripeStatus: StripeSubscriptionStatus | null;
+      stripeTrialEnd: Date | null;
+      stripeCurrentPeriodEnd: Date | null;
+      stripeCancelAtPeriodEnd: boolean;
     } | null,
     Array<{
       module: AppModule;
@@ -69,10 +81,10 @@ export default async function DashboardSettingsPage() {
           },
           select: {
             id: true,
-            subscriptionStatus: true,
-            trialEndsAt: true,
-            paidThrough: true,
-            autoRenewEnabled: true,
+            stripeStatus: true,
+            stripeTrialEnd: true,
+            stripeCurrentPeriodEnd: true,
+            stripeCancelAtPeriodEnd: true,
           },
         }),
         prisma.businessModuleSubscription.findMany({
@@ -113,7 +125,8 @@ export default async function DashboardSettingsPage() {
   });
 
   const isMonthlySubscriptionActive =
-    business.subscriptionStatus === SubscriptionStatus.ACTIVE_PAID && business.autoRenewEnabled;
+    business.stripeStatus === StripeSubscriptionStatus.ACTIVE ||
+    business.stripeStatus === StripeSubscriptionStatus.TRIALING;
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
@@ -128,10 +141,11 @@ export default async function DashboardSettingsPage() {
           <Card className="flex h-full flex-col space-y-3">
             <h2 className="text-lg font-semibold text-slate-900">Renewal details</h2>
             <p className="text-sm text-slate-700">
-              Current subscription status: <span className="font-medium text-slate-900">{getStatusLabel(business.subscriptionStatus)}</span>
+              Current subscription status: <span className="font-medium text-slate-900">{getStatusLabel(business.stripeStatus)}</span>
             </p>
-            <p className="text-sm text-slate-700">Trial ends: {business.trialEndsAt ? business.trialEndsAt.toLocaleDateString() : "Not set"}</p>
-            <p className="text-sm text-slate-700">Paid through: {business.paidThrough ? business.paidThrough.toLocaleDateString() : "Not set"}</p>
+            <p className="text-sm text-slate-700">Trial ends: {business.stripeTrialEnd ? business.stripeTrialEnd.toLocaleDateString() : "Not set"}</p>
+            <p className="text-sm text-slate-700">Current period ends: {business.stripeCurrentPeriodEnd ? business.stripeCurrentPeriodEnd.toLocaleDateString() : "Not set"}</p>
+            <p className="text-sm text-slate-700">Cancel at period end: {business.stripeCancelAtPeriodEnd ? "Yes" : "No"}</p>
             <RenewSubscriptionForm
               businessId={workspace.businessId}
               isMonthlySubscriptionActive={isMonthlySubscriptionActive}

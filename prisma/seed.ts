@@ -18,6 +18,7 @@ import {
   SubscriptionStatus,
   SystemRole,
 } from "@prisma/client";
+import { DEMO_LOCATION_SLUG, DEMO_OWNER_EMAIL } from "@/lib/demo/config";
 
 export async function seedDemoData(prisma: PrismaClient) {
   const now = new Date();
@@ -25,7 +26,7 @@ export async function seedDemoData(prisma: PrismaClient) {
   trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
   const business = await prisma.business.upsert({
-    where: { email: "owner@democoffee.com" },
+    where: { email: DEMO_OWNER_EMAIL },
     update: {
       name: "Demo Coffee Co",
       subscriptionStatus: SubscriptionStatus.TRIAL_ACTIVE,
@@ -41,7 +42,7 @@ export async function seedDemoData(prisma: PrismaClient) {
     },
     create: {
       name: "Demo Coffee Co",
-      email: "owner@democoffee.com",
+      email: DEMO_OWNER_EMAIL,
       subscriptionStatus: SubscriptionStatus.TRIAL_ACTIVE,
       trialStartedAt: now,
       trialEndsAt,
@@ -56,12 +57,12 @@ export async function seedDemoData(prisma: PrismaClient) {
   });
 
   const ownerUser = await prisma.user.upsert({
-    where: { email: "owner@democoffee.com" },
+    where: { email: DEMO_OWNER_EMAIL },
     update: {
       systemRole: SystemRole.USER,
     },
     create: {
-      email: "owner@democoffee.com",
+      email: DEMO_OWNER_EMAIL,
       systemRole: SystemRole.USER,
     },
   });
@@ -84,7 +85,7 @@ export async function seedDemoData(prisma: PrismaClient) {
   });
 
   const location = await prisma.location.upsert({
-    where: { slug: "demo-coffee-downtown" },
+    where: { slug: DEMO_LOCATION_SLUG },
     update: {
       name: "Downtown",
       reviewLink: "https://example.com/review/demo-coffee-downtown",
@@ -95,7 +96,7 @@ export async function seedDemoData(prisma: PrismaClient) {
     create: {
       businessId: business.id,
       name: "Downtown",
-      slug: "demo-coffee-downtown",
+      slug: DEMO_LOCATION_SLUG,
       reviewLink: "https://example.com/review/demo-coffee-downtown",
       googleReviewLink: "https://g.page/r/demo-coffee/review",
       yelpReviewLink: "https://www.yelp.com/writeareview/biz/demo-coffee",
@@ -494,6 +495,7 @@ async function main() {
 
   try {
     await seedDemoData(prisma);
+    console.info(`[seed] Demo owner workspace is ready at /demo-access for ${DEMO_OWNER_EMAIL}`);
   } finally {
     await prisma.$disconnect();
   }

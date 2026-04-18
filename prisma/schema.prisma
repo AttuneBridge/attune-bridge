@@ -5,12 +5,20 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Business {
   id                   String                       @id @default(cuid())
   name                 String
   email                String                       @unique
+  stripeCustomerId     String?                      @unique
+  stripeSubscriptionId String?                      @unique
+  stripeStatus         StripeSubscriptionStatus?
+  stripeCurrentPeriodEnd DateTime?
+  stripeTrialEnd       DateTime?
+  stripeCancelAtPeriodEnd Boolean                   @default(false)
+  billingSyncedAt      DateTime?
   subscriptionStatus   SubscriptionStatus           @default(TRIAL_ACTIVE)
   trialStartedAt       DateTime?
   trialEndsAt          DateTime?
@@ -40,6 +48,8 @@ model Business {
   contactProfiles      ContactProfile[]
   missedCallConfig     MissedCallConfig?
   missedCallEvents     MissedCallEvent[]
+  stripeWebhookEvents  StripeWebhookEvent[]
+  moduleChangeRequests ModuleChangeRequest[]
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
 
@@ -135,6 +145,7 @@ model BusinessModuleSubscription {
   businessId String
   module     AppModule
   status     ModuleSubscriptionStatus @default(INACTIVE)
+  stripeSubscriptionItemId String?
   startedAt  DateTime?
   endsAt     DateTime?
   business   Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -144,6 +155,38 @@ model BusinessModuleSubscription {
   @@unique([businessId, module])
   @@index([businessId, status])
   @@index([module, status])
+}
+
+model ModuleChangeRequest {
+  id                     String                    @id @default(cuid())
+  businessId             String
+  module                 AppModule
+  action                 ModuleChangeAction
+  status                 ModuleChangeRequestStatus @default(PENDING)
+  effectiveAt            DateTime
+  stripeSubscriptionId   String?
+  stripeSubscriptionItemId String?
+  appliedAt              DateTime?
+  errorMessage           String?
+  business               Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  @@index([businessId, status, effectiveAt])
+  @@index([module, status, effectiveAt])
+}
+
+model StripeWebhookEvent {
+  id            String   @id @default(cuid())
+  businessId    String?
+  stripeEventId String   @unique
+  eventType     String
+  payload       Json?
+  processedAt   DateTime @default(now())
+  business      Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, processedAt])
+  @@index([businessId, processedAt])
 }
 
 model OwnerFeatureRequest {
@@ -506,6 +549,29 @@ enum ModuleSubscriptionStatus {
   ACTIVE
   TRIAL
   INACTIVE
+}
+
+enum ModuleChangeAction {
+  ACTIVATE
+  DEACTIVATE
+}
+
+enum ModuleChangeRequestStatus {
+  PENDING
+  APPLIED
+  FAILED
+  CANCELED
+}
+
+enum StripeSubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
 }
 
 enum SchedulerOfferStatus {

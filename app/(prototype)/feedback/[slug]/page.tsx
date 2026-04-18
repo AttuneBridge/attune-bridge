@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { SubscriptionStatus } from "@prisma/client";
+import { StripeSubscriptionStatus } from "@prisma/client";
 import { FeedbackExperience } from "@/components/forms/feedback-experience";
+import { evaluateBillingAccess } from "@/lib/billing/access";
 import { Card } from "@/components/ui/card";
 import { getDayDelta } from "@/lib/subscription-countdown";
 import { prisma } from "@/lib/prisma";
-import { evaluateBusinessAccess } from "@/lib/subscription-access";
 
 type FeedbackPageProps = {
   params: Promise<{ slug: string }>;
@@ -37,11 +37,9 @@ export default async function FeedbackPage({ params, searchParams }: FeedbackPag
     yelpReviewLink: string | null;
     business: {
       name: string;
-      subscriptionStatus: SubscriptionStatus;
-      trialEndsAt: Date | null;
-      paidThrough: Date | null;
-      autoRenewEnabled: boolean;
-      deactivatedAt: Date | null;
+      stripeStatus: StripeSubscriptionStatus | null;
+      stripeCurrentPeriodEnd: Date | null;
+      stripeTrialEnd: Date | null;
     };
   } | null = null;
 
@@ -56,11 +54,9 @@ export default async function FeedbackPage({ params, searchParams }: FeedbackPag
         business: {
           select: {
             name: true,
-            subscriptionStatus: true,
-            trialEndsAt: true,
-            paidThrough: true,
-            autoRenewEnabled: true,
-            deactivatedAt: true,
+            stripeStatus: true,
+            stripeCurrentPeriodEnd: true,
+            stripeTrialEnd: true,
           },
         },
       },
@@ -100,20 +96,18 @@ export default async function FeedbackPage({ params, searchParams }: FeedbackPag
     );
   }
 
-  const access = evaluateBusinessAccess({
-    subscriptionStatus: location.business.subscriptionStatus,
-    trialEndsAt: location.business.trialEndsAt,
-    paidThrough: location.business.paidThrough,
-    autoRenewEnabled: location.business.autoRenewEnabled,
-    deactivatedAt: location.business.deactivatedAt,
+  const access = evaluateBillingAccess({
+    stripeStatus: location.business.stripeStatus,
   });
 
   const activeWindowEnd =
-    location.business.subscriptionStatus === SubscriptionStatus.ACTIVE_PAID
-      ? location.business.paidThrough
-      : location.business.trialEndsAt;
+    location.business.stripeStatus === "ACTIVE"
+      ? location.business.stripeCurrentPeriodEnd
+      : location.business.stripeTrialEnd;
   const dayDelta = getDayDelta(activeWindowEnd);
-  const isRecoverableExpired = !access.isActive && access.reason === "expired";
+  const isRecoverableExpired =
+    !access.isActive && (access.reason === "canceled" || access.reason === "past_due");
+  const isMissingSetup = !access.isActive && access.reason === "missing_subscription";
   const daysSinceExpiry = dayDelta === null ? null : Math.abs(Math.min(dayDelta, 0));
 
   if (!access.isActive) {
@@ -121,7 +115,7 @@ export default async function FeedbackPage({ params, searchParams }: FeedbackPag
       <main className="mx-auto w-full max-w-3xl px-4 py-10 md:py-14">
         <Card className="space-y-3">
           <h1 className="text-xl font-semibold text-slate-900">This feedback form is temporarily unavailable</h1>
-          {access.reason === "misconfigured" ? (
+          {isMissingSetup ? (
             <p className="inline-flex w-fit rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
               Missing setup
             </p>
@@ -139,7 +133,7 @@ export default async function FeedbackPage({ params, searchParams }: FeedbackPag
               This link expired {daysSinceExpiry} day{daysSinceExpiry === 1 ? "" : "s"} ago and can be reactivated soon.
             </p>
           ) : null}
-          {access.reason === "misconfigured" ? (
+          {isMissingSetup ? (
             <p className="text-sm text-slate-600">
               This business account is still finishing setup. Please contact the owner for an updated feedback link.
             </p>

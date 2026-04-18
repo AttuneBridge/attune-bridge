@@ -13,8 +13,11 @@ type RenewResponse = {
   ok?: boolean;
   error?: string;
   action?: string;
-  winbackExtensionDays?: number;
-  winbackVariant?: string;
+  checkoutUrl?: string | null;
+  alreadyActive?: boolean;
+  resumed?: boolean;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
 };
 
 const cancelReasonHints: Record<string, string> = {
@@ -68,12 +71,21 @@ export function RenewSubscriptionForm({
         return;
       }
 
+      if (result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+
       setSuccessMessage(
         result.action === "cancel"
-          ? "Subscription canceled. Feedback link is now inactive."
+          ? "Subscription will cancel at period end."
           : result.action === "winback"
-            ? `Win-back accepted (${result.winbackVariant ?? "experiment"}). Subscription remains active with ${result.winbackExtensionDays ?? 7} extra days.`
-            : "Subscription started. Feedback link reactivated.",
+            ? "Auto-renew restored. Subscription stays active."
+            : result.alreadyActive
+              ? "Subscription is already active."
+              : result.resumed
+                ? "Subscription renewal resumed."
+                : "Checkout session created. Redirecting...",
       );
       router.refresh();
     } catch {
