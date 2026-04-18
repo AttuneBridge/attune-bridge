@@ -31,6 +31,7 @@ model Business {
   alertPhone           String?
   quietHoursStart      String?
   quietHoursEnd        String?
+  reviewRequestTemplate String?
   locations            Location[]
   memberships          BusinessMembership[]
   notificationEvents   NotificationEvent[]
