@@ -36,11 +36,13 @@ jobs:
       - name: Generate Prisma client
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
         run: pnpm exec prisma generate
 
       - name: Validate Prisma schema
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
         run: pnpm exec prisma validate
 
       - name: Lint
@@ -49,6 +51,7 @@ jobs:
       - name: Build
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
           RESEND_API_KEY: re_test_placeholder
           RESEND_FROM_EMAIL: noreply@example.com
           MANAGE_TOKEN_SECRET: ci_manage_token_secret_placeholder
