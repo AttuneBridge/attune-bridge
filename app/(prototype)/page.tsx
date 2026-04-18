@@ -1,52 +1,8 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { ModuleJourneyShowcase } from "@/components/marketing/module-journey-showcase";
 import { Card } from "@/components/ui/card";
-
-type ModuleTone = "reviews" | "textback" | "scheduler" | "loyalty";
-
-function getModuleCardClass(tone: ModuleTone) {
-  switch (tone) {
-    case "reviews":
-      return "border-rose-200 bg-rose-50";
-    case "textback":
-      return "border-teal-200 bg-teal-50";
-    case "scheduler":
-      return "border-amber-200 bg-amber-50";
-    case "loyalty":
-      return "border-violet-200 bg-violet-50";
-    default:
-      return "border-slate-200 bg-white";
-  }
-}
-
-function getModuleAccentClass(tone: ModuleTone) {
-  switch (tone) {
-    case "reviews":
-      return "text-rose-700";
-    case "textback":
-      return "text-teal-700";
-    case "scheduler":
-      return "text-amber-700";
-    case "loyalty":
-      return "text-violet-700";
-    default:
-      return "text-slate-900";
-  }
-}
-
-function getModuleDotClass(tone: ModuleTone) {
-  switch (tone) {
-    case "reviews":
-      return "bg-rose-600";
-    case "textback":
-      return "bg-teal-600";
-    case "scheduler":
-      return "bg-amber-600";
-    case "loyalty":
-      return "bg-violet-600";
-    default:
-      return "bg-slate-400";
-  }
-}
+import { getDemoUrl, isDemoHost } from "@/lib/demo/config";
 
 const moduleJourneyCards = [
   {
@@ -60,7 +16,7 @@ const moduleJourneyCards = [
     realWorldOutcome:
       "A same-day recovery message turns a frustrated first-time guest into a returning client.",
     showNowLabel: "Show feedback inbox now",
-    showNowHref: "/demo/feedback",
+    showNowPath: "/demo/feedback",
   },
   {
     tone: "textback" as const,
@@ -73,7 +29,7 @@ const moduleJourneyCards = [
     realWorldOutcome:
       "The client replies by text, books later that day, and never falls out of the funnel.",
     showNowLabel: "Show textback workflow now",
-    showNowHref: "/dashboard/textback",
+    showNowPath: "/dashboard/textback",
   },
   {
     tone: "scheduler" as const,
@@ -86,7 +42,7 @@ const moduleJourneyCards = [
     realWorldOutcome:
       "Open spots are filled with people who already trust the business.",
     showNowLabel: "Show scheduler board now",
-    showNowHref: "/dashboard/scheduler",
+    showNowPath: "/dashboard/scheduler",
   },
   {
     tone: "loyalty" as const,
@@ -99,82 +55,137 @@ const moduleJourneyCards = [
     realWorldOutcome:
       "Repeat bookings become a system, not a guess, and revenue stabilizes month to month.",
     showNowLabel: "Show loyalty queue now",
-    showNowHref: "/dashboard/loyalty",
+    showNowPath: "/dashboard/loyalty",
   },
 ];
 
-export default function HomePage() {
-  const guidedDemoHref = "https://demo.attunebridge.com/demo-access";
+export default async function HomePage() {
+  const requestHeaders = await headers();
+  const isDemoExperience = isDemoHost(requestHeaders.get("host"));
+
+  const guidedDemoHref = isDemoExperience ? "/demo-access" : getDemoUrl("/demo-access");
+  const playbookHref = isDemoExperience ? "/playbook" : getDemoUrl("/playbook");
+  const feedbackInboxHref = isDemoExperience ? "/demo/feedback" : getDemoUrl("/demo/feedback");
+  const demoQrHref = isDemoExperience ? "/demo/qr" : getDemoUrl("/demo/qr");
+  const moduleJourneyItems = moduleJourneyCards.map((item) => ({
+    ...item,
+    showNowHref: isDemoExperience ? item.showNowPath : getDemoUrl(item.showNowPath),
+  }));
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-10 md:py-14">
-      <section className="grid gap-6 md:grid-cols-[1.15fr_0.85fr]">
-        <Card className="space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Small Business Journey Playbook
+    <main className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
+      <section className="grid gap-6 md:grid-cols-[1.15fr_0.85fr] md:items-stretch">
+        <Card className="relative space-y-5 overflow-hidden border-module-textback-border/60 bg-linear-to-br from-app-surface to-module-textback-soft/35">
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-14 top-2 h-44 w-44 rounded-full bg-radial from-module-textback-solid/16 to-module-textback-solid/0" />
+            <div className="absolute right-8 bottom-3 h-24 w-36 rounded-full bg-radial from-module-textback-border/35 to-module-textback-border/0" />
+          </div>
+
+          <div className="relative">
+            <p className="mb-2 inline-flex items-center rounded-full border border-module-textback-border bg-app-surface px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-module-textback-solid">
+              Narrative First
+            </p>
+          </div>
+
+          <p className="relative text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            {isDemoExperience ? "Demo Workspace" : "Small Business Journey"}
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-            Turn customer moments into retained revenue before problems become public.
+          <h1 className="relative font-display text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+            {isDemoExperience
+              ? "Walk through every AttuneBridge tool in a seeded owner workspace."
+              : "Turn customer moments into retained revenue before problems become public."}
           </h1>
-          <p className="text-slate-700">
-            AttuneBridge helps service businesses capture private sentiment, recover at-risk clients,
-            and launch timely follow-up campaigns so teams can protect reputation and grow repeat
-            visits.
+          <p className="relative max-w-2xl text-slate-700">
+            {isDemoExperience
+              ? "Use this environment to demo Reviews, missed-call textback, Scheduler, and Loyalty workflows with realistic sample data."
+              : "AttuneBridge helps service businesses capture private sentiment, recover at-risk clients, and launch timely follow-up campaigns so teams can protect reputation and grow repeat visits."}
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="relative flex flex-wrap items-center gap-3 pt-1">
             <Link
               href={guidedDemoHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              target={isDemoExperience ? undefined : "_blank"}
+              rel={isDemoExperience ? undefined : "noopener noreferrer"}
+              className="inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
             >
-              View Guided Demo
+              {isDemoExperience ? "Continue as Demo Owner" : "Open Interactive Demo"}
             </Link>
             <Link
               href="/signup"
-              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100"
+              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 transition hover:-translate-y-0.5 hover:bg-slate-100"
             >
-              Start Trial
+              Start Free Trial
             </Link>
             <p className="text-sm text-slate-600">
-              One-click seeded owner workspace for live walkthroughs.
+              {isDemoExperience
+                ? "One click signs you into the seeded demo owner workspace."
+                : "Interactive walkthroughs and playbooks live on the demo subdomain."}
             </p>
           </div>
         </Card>
 
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Client Journey</h2>
-          <ol className="space-y-3 text-sm text-slate-700">
+        <Card className="relative space-y-3 overflow-hidden border-module-scheduler-border/65 bg-linear-to-br from-app-surface to-module-scheduler-soft/40">
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute -right-10 top-2 h-36 w-36 rounded-full bg-radial from-module-scheduler-solid/14 to-module-scheduler-solid/0" />
+            <svg className="absolute left-4 bottom-4 h-20 w-20 opacity-60" viewBox="0 0 80 80" fill="none">
+              <rect className="stroke-module-scheduler-border/55" x="10" y="12" width="60" height="56" rx="10" strokeWidth="1.2" />
+              <path className="stroke-module-scheduler-border/55" d="M10 30h60" strokeWidth="1.2" />
+            </svg>
+          </div>
+
+          <p className="relative inline-flex w-fit items-center rounded-full border border-module-scheduler-border bg-app-surface px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-module-scheduler-solid">
+            Story Flow
+          </p>
+          <h2 className="relative font-display text-lg font-semibold text-slate-900">Client Journey</h2>
+          <ol className="relative space-y-3 text-sm text-slate-700">
             <li>1. Client shares post-visit sentiment in under a minute.</li>
             <li>2. Team triages issues privately and follows up by preferred channel.</li>
             <li>3. Positive moments route to review and loyalty opportunities.</li>
             <li>4. Follow-up playbooks drive second and third visits automatically.</li>
           </ol>
           <Link
-            href="/playbook"
-            className="inline-flex text-sm font-medium text-slate-900 underline"
+            href={playbookHref}
+            target={isDemoExperience ? undefined : "_blank"}
+            rel={isDemoExperience ? undefined : "noopener noreferrer"}
+            className="relative inline-flex text-sm font-medium text-slate-900 underline underline-offset-4"
           >
-            Open the guided playbook
+            {isDemoExperience ? "Open the guided playbook" : "Open the guided playbook on demo"}
           </Link>
         </Card>
       </section>
 
       <section className="mt-6">
-        <Card className="space-y-3">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+        <Card className="relative space-y-3 overflow-hidden border-module-reviews-border/65 bg-linear-to-r from-app-surface via-app-surface to-module-reviews-soft/38">
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-radial from-module-reviews-solid/14 to-module-reviews-solid/0" />
+            <div className="absolute right-1/4 top-2 h-16 w-56 rounded-full bg-radial from-module-reviews-border/35 to-module-reviews-border/0" />
+          </div>
+          <p className="relative inline-flex w-fit items-center rounded-full border border-module-reviews-border bg-app-surface px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-module-reviews-solid">
+            Outcome Lens
+          </p>
+          <h2 className="relative font-display text-xl font-semibold tracking-tight text-slate-900">
             How AttuneBridge helps owners
           </h2>
-          <ul className="space-y-2 text-sm text-slate-700">
+          <ul className="relative grid gap-2 text-sm text-slate-700 md:grid-cols-2">
             <li>- Catch churn risk before a public review is posted.</li>
             <li>- Give staff clear next actions for every negative or neutral response.</li>
             <li>- Trigger scheduler and loyalty workflows with less manual work.</li>
             <li>- Keep all owner-critical workflows in one dashboard.</li>
           </ul>
-          <div className="flex flex-wrap gap-4 pt-1">
-            <Link href="/demo/feedback" className="text-sm font-medium text-slate-900 underline">
+          <div className="relative flex flex-wrap gap-4 pt-1">
+            <Link
+              href={feedbackInboxHref}
+              target={isDemoExperience ? undefined : "_blank"}
+              rel={isDemoExperience ? undefined : "noopener noreferrer"}
+              className="text-sm font-medium text-slate-900 underline underline-offset-4"
+            >
               View demo feedback inbox
             </Link>
-            <Link href="/demo/qr" className="text-sm font-medium text-slate-900 underline">
+            <Link
+              href={demoQrHref}
+              target={isDemoExperience ? undefined : "_blank"}
+              rel={isDemoExperience ? undefined : "noopener noreferrer"}
+              className="text-sm font-medium text-slate-900 underline underline-offset-4"
+            >
               View demo QR flow
             </Link>
           </div>
@@ -182,47 +193,23 @@ export default function HomePage() {
       </section>
 
       <section className="mt-6">
-        <Card className="space-y-4">
+        <Card className="space-y-4 overflow-hidden">
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Sales Enablement</p>
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">Customer journey by module</h2>
             <p className="text-sm text-slate-700">
-              Start with real customer language, then show how each Review Bridge module fills a specific operational gap.
+              A focused, partner-ready walkthrough that keeps one module center stage while preserving the full story.
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            {moduleJourneyCards.map((item) => (
-              <div key={item.module} className={`rounded-xl border p-4 ${getModuleCardClass(item.tone)}`}>
-                <p className={`inline-flex items-center gap-2 text-sm font-semibold ${getModuleAccentClass(item.tone)}`}>
-                  <span className={`inline-block size-2 rounded-full ${getModuleDotClass(item.tone)}`} aria-hidden />
-                  {item.module}
-                </p>
-                <p className="mt-2 text-base italic text-slate-900">{item.customerVoice}</p>
-                <p className={`mt-3 text-xs uppercase tracking-wide ${getModuleAccentClass(item.tone)}`}>Gap</p>
-                <p className="text-sm text-slate-700">{item.gap}</p>
-                <p className={`mt-2 text-xs uppercase tracking-wide ${getModuleAccentClass(item.tone)}`}>
-                  Enter Review Bridge
-                </p>
-                <p className="text-sm text-slate-700">{item.bridgeAction}</p>
-                <p className={`mt-2 text-xs uppercase tracking-wide ${getModuleAccentClass(item.tone)}`}>
-                  Real-world result
-                </p>
-                <p className="text-sm text-slate-700">{item.realWorldOutcome}</p>
-                <Link href={item.showNowHref} className={`mt-3 inline-flex text-sm font-medium underline ${getModuleAccentClass(item.tone)}`}>
-                  {item.showNowLabel}
-                </Link>
-              </div>
-            ))}
+          <div className="-mx-6 rounded-2xl border-y border-app-surface-muted bg-linear-to-br from-app-surface-muted to-app-surface px-6 py-6 md:py-8">
+            <ModuleJourneyShowcase
+              items={moduleJourneyItems}
+              intro="Switch between modules to present the same customer-to-outcome narrative with tighter visual focus and clearer conversion intent."
+            />
           </div>
         </Card>
       </section>
-
-      <footer className="mt-24 text-center text-sm text-slate-500">
-        <Link href="/about" target="_blank" rel="noopener noreferrer" className="hover:underline">
-          About the Builder
-        </Link>
-      </footer>
     </main>
   );
 }
